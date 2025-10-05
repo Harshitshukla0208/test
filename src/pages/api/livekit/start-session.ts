@@ -1,6 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 
-const BACKEND_URL = process.env.NEXT_PUBLIC_APP_BASE_URL;
+const BACKEND_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 const API_ENDPOINT = '/api/livekit/start-session';
 
 interface BackendRequestBody {

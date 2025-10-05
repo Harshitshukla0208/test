@@ -18,7 +18,7 @@ export default async function handler(
         }
 
         const response = await fetch(
-            `${process.env.NEXT_PUBLIC_APP_BASE_URL}/api/profile/get-user-profile`,
+            `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/profile/get-user-profile`,
             {
                 method: 'GET',
                 headers: {

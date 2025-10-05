@@ -42,7 +42,7 @@ export default async function handler(
     console.log('Updating profile with params:', params.toString())
 
     const response = await fetch(
-      `${process.env.NEXT_PUBLIC_APP_BASE_URL}/api/profile/update-profile?${params.toString()}`,
+      `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/profile/update-profile?${params.toString()}`,
       {
         method: 'PUT',
         headers: {

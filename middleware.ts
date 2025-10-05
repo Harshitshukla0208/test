@@ -5,7 +5,7 @@ import type { NextRequest } from 'next/server'
 // Helper function to check profile on server side
 async function checkUserProfile(token: string): Promise<boolean> {
   try {
-    const response = await fetch(`${process.env.NEXT_PUBLIC_APP_BASE_URL}/api/get-user-profile`, {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/get-user-profile`, {
       method: 'GET',
       headers: {
         'accept': 'application/json',

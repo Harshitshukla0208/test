@@ -19,7 +19,7 @@ export default async function handler(
         if (subject) params.append('subject', subject as string)
 
         const queryString = params.toString()
-        const url = `${process.env.NEXT_PUBLIC_APP_BASE_URL}/api/utilities/Get-dropdown-values${queryString ? `?${queryString}` : ''}`
+        const url = `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/utilities/Get-dropdown-values${queryString ? `?${queryString}` : ''}`
 
         const response = await fetch(url, {
             method: 'GET',

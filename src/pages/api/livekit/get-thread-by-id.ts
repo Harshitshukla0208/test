@@ -1,6 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 
-const EXTERNAL_URL = `${process.env.NEXT_PUBLIC_APP_BASE_URL}/api/livekit/get-thread_by_id`;
+const EXTERNAL_URL = `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/livekit/get-thread_by_id`;
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'GET') {

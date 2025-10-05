@@ -67,7 +67,7 @@ export default async function handler(
 
         // Make request to your backend API
         const response = await fetch(
-            `${process.env.NEXT_PUBLIC_APP_BASE_URL}/api/profile/create-profile?${params}`,
+            `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/profile/create-profile?${params}`,
             {
                 method: 'POST',
                 headers: {

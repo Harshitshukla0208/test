@@ -7,7 +7,7 @@ const ONE_MINUTE_IN_MILLISECONDS = 60 * 1000;
 
 // ExtendedConnectionDetails is no longer needed since ConnectionDetails now includes these fields
 
-interface AppConfig {
+export interface AppConfig {
   grade?: string;
   subject?: string;
   chapter?: string;

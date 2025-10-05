@@ -25,6 +25,7 @@ import StudyNotesImg from '@/assets/StudyNotesImg.svg';
 import PracticeQuestionsImg from '@/assets/PracticeQuestionsImg.svg';
 import ReactMarkdown from 'react-markdown';
 import { AudioNoteSummarizerLoader } from '@/components/loader';
+import type { AppConfig } from '@/hooks/useConnectionDetails';
 
 // Types
 type Profile = {
@@ -120,12 +121,12 @@ const Classroom = () => {
     const [firstMessageArrived, setFirstMessageArrived] = useState(false);
 
     // Remove static activityHistory and add state for threads
-    const [threads, setThreads] = useState<any[]>([]);
+    const [threads, setThreads] = useState<string[]>([]);
     const [threadsLoading, setThreadsLoading] = useState(false);
     const [threadsError, setThreadsError] = useState<string | null>(null);
 
     const [selectedThreadId, setSelectedThreadId] = useState<string | null>(null);
-    const [threadHistory, setThreadHistory] = useState<any[]>([]);
+    const [threadHistory, setThreadHistory] = useState<ThreadMessage[]>([]);
     const [loadingThread, setLoadingThread] = useState(false);
     const [showContinueButton, setShowContinueButton] = useState(false);
 
@@ -559,14 +560,14 @@ const Classroom = () => {
                                                 if (room.state === 'disconnected') {
                                                     try {
                                                         setConnecting(true);
-                                                        const config: any = {
+                                                        const config: AppConfig = {
                                                             username: profile.first_name,
                                                             board: profile.board,
                                                             grade: profile.grade,
                                                             subject: selectedSubject,
                                                             chapter: selectedChapter?.number ?? '',
                                                             participantIdentity: profile.profile_id,
-                                                            thread: selectedThreadId,
+                                                            thread: selectedThreadId ?? undefined,
                                                         };
                                                         const details = await fetchConnectionDetailsWithConfig(config);
                                                         await room.connect(details.serverUrl, details.participantToken);
@@ -633,10 +634,17 @@ const Classroom = () => {
 
 export default withProtectedRoute(Classroom);
 
+// Add ThreadMessage type for thread history
+export type ThreadMessage = {
+    role: string;
+    timestamp: string;
+    message: string;
+};
+
 function ClassroomMessages({ onFirstMessage, historyMessages = [] }: {
     loading?: boolean,
     onFirstMessage?: () => void,
-    historyMessages?: any[]
+    historyMessages?: ThreadMessage[]
 }) {
     const { messages } = useChatAndTranscription();
     const room = useRoomContext();

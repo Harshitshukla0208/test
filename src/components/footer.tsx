@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button"
+import Link from "next/link"
 
 export function Footer() {
   return (
@@ -89,12 +90,12 @@ export function Footer() {
         <div className="border-t border-gray-800 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
           <p className="text-gray-400 text-sm">© 2025 LeoQui. All rights reserved.</p>
           <div className="flex gap-6 text-sm text-gray-400">
-            <a href="#" className="hover:text-white">
+            <Link href="/privacy-policy" className="hover:text-white">
               Privacy Policy
-            </a>
-            <a href="#" className="hover:text-white">
-              Terms of Service
-            </a>
+            </Link>
+            <Link href="/terms-and-conditions" className="hover:text-white">
+              Terms &amp; Conditions
+            </Link>
             <a href="#" className="hover:text-white">
               Cookie Policy
             </a>

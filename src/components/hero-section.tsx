@@ -6,10 +6,9 @@ export function HeroSection() {
           Future of <span className="text-primary">AI Learning</span>
         </h1>
         <p className="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
-          Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore
-          magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo
-          consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla
-          pariatur.
+          Discover an AI-powered study companion that understands how you learn. From personalised guidance to
+          real-time practice and review, Leoqui brings together the best of adaptive tutoring and collaborative
+          classrooms so every learner can master new skills with confidence.
         </p>
       </div>
     </section>

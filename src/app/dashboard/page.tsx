@@ -154,7 +154,6 @@ const Dashboard = () => {
 
     const userInitials = `${profile.first_name?.[0] || ''}${profile.last_name?.[0] || ''}`.toUpperCase() || 'U'
 
-    const subjectColors = ['bg-white']
 
     // Removed unused subjectImages
 
@@ -357,17 +356,20 @@ const Dashboard = () => {
                             ) : subjects.length === 0 ? (
                                 <div className="text-sm text-gray-500">No subjects available</div>
                             ) : (
-                                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4">
-                                    {subjects.map((name, index) => (
-                                        <Link key={name} href={`/classroom?subject=${encodeURIComponent(name)}`} className="flex flex-col items-center p-2 sm:p-3 bg-white border border-gray-200 rounded-lg hover:shadow-md transition-shadow">
-                                            {/* Outer circle */}
-                                            <div className="w-[60px] h-[60px] sm:w-[72px] sm:h-[72px] rounded-full border-4 border-[#6F6CFF1C] flex items-center justify-center mb-2 sm:mb-3">
-                                                {/* Inner circle */}
-                                                <div className={`w-[52px] h-[52px] sm:w-16 sm:h-16 ${subjectColors[index % subjectColors.length]} rounded-full border-3 border-[#714B90] flex items-center justify-center`}>
-                                                    <Image src={getSubjectImage(name)} alt={name + ' image'} className="w-8 h-8 sm:w-10 sm:h-10" />
+                                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+                                    {subjects.map((name) => (
+                                        <Link
+                                            key={name}
+                                            href={`/classroom?subject=${encodeURIComponent(name)}`}
+                                            className="group flex flex-col items-center text-center gap-3 sm:gap-4"
+                                        >
+                                            <div className="relative flex items-center justify-center">
+                                                <div className="absolute inset-0 rounded-full bg-gradient-to-br from-[#DACFF8] via-white to-[#F3EEFF] opacity-0 transition-opacity duration-200 group-hover:opacity-100" />
+                                                <div className="relative flex items-center justify-center w-16 h-16 sm:w-20 sm:h-20 rounded-full border border-[#E8E2F5] bg-white shadow-[0_10px_25px_rgba(113,75,144,0.18)] transition-all duration-200 group-hover:shadow-[0_14px_32px_rgba(113,75,144,0.25)] group-hover:-translate-y-1">
+                                                    <Image src={getSubjectImage(name)} alt={`${name} icon`} className="w-9 h-9 sm:w-11 sm:h-11" />
                                                 </div>
                                             </div>
-                                            <span className="text-xs sm:text-sm font-medium text-gray-700 text-center">{name}</span>
+                                            <span className="text-xs sm:text-sm font-semibold text-gray-600 tracking-wide">{name}</span>
                                         </Link>
                                     ))}
                                 </div>

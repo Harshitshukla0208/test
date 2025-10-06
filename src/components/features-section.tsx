@@ -5,7 +5,7 @@ export function FeaturesSection() {
     {
       title: "Ask & Practice Questions",
       description:
-        "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.",
+        "Chat with Leoqui just like you would with a classmate or tutor. Ask anything, get clear explanations instantly, and follow up with tailored practice problems that sharpen understanding topic by topic.",
       image: "/student-asking-questions-with-colorful-background.jpg",
       imagePosition: "right",
       bgColor: "bg-gradient-to-br from-teal-400 to-blue-500",
@@ -13,7 +13,7 @@ export function FeaturesSection() {
     {
       title: "A Homework Help Buddy",
       description:
-        "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.",
+        "Upload assignments or tricky questions and receive step-by-step guidance without giving away the answers. Leoqui breaks tasks into manageable steps so students stay engaged while learning how to solve problems on their own.",
       image: "/placeholder-j6y6w.png",
       imagePosition: "left",
       bgColor: "bg-gradient-to-br from-blue-400 to-[#714B90]",
@@ -21,7 +21,7 @@ export function FeaturesSection() {
     {
       title: "Study Notes for revisions",
       description:
-        "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.",
+        "Turn classroom materials into polished summaries in seconds. Generate concise revision notes, highlight key formulas, and bookmark insights so exam prep feels organised instead of overwhelming.",
       image: "/student-taking-notes-at-computer-with-yellow-backg.jpg",
       imagePosition: "right",
       bgColor: "bg-gradient-to-br from-yellow-400 to-orange-500",
@@ -29,7 +29,7 @@ export function FeaturesSection() {
     {
       title: "Flash Cards and many more",
       description:
-        "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.",
+        "Create interactive flash cards, mind maps, and study playlists tailored to each learner. Leoqui keeps revision fresh with smart spaced repetition and creative study formats that stick.",
       image: "/mobile-app-flashcards-interface.jpg",
       imagePosition: "left",
       bgColor: "bg-white",
@@ -37,7 +37,7 @@ export function FeaturesSection() {
     {
       title: "Take Quiz to check progress",
       description:
-        "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.",
+        "Measure mastery with adaptive quizzes that adjust to confidence levels. Instantly see strengths, close knowledge gaps, and celebrate milestones as you advance through your learning journey.",
       image: "/student-taking-online-quiz-with-headphones.jpg",
       imagePosition: "right",
       bgColor: "bg-gradient-to-br from-green-400 to-teal-500",

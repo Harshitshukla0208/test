@@ -14,13 +14,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(401).json({ error: 'No authorization token provided' });
     }
 
-    const { threadId } = req.query;
+    const { threadId, thread_type } = req.query;
     
     if (!threadId) {
       return res.status(400).json({ error: 'Missing required parameter: threadId' });
     }
 
-    const url = `${EXTERNAL_URL}/${threadId}`;
+    // Build URL with thread_type parameter
+    const url = `${EXTERNAL_URL}/${threadId}${thread_type ? `?thread_type=${encodeURIComponent(String(thread_type))}` : ''}`;
 
     const response = await fetch(url, {
       method: 'GET',

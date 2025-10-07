@@ -378,21 +378,32 @@ const Dashboard = () => {
 
                         {/* Career Counsellor Cards */}
                         <div className="space-y-4">
-                            {[1].map((item) => (
-                                <div key={item} className="bg-[#F5F6FA] rounded-xl p-3 sm:p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between">
+                            {[
+                                {
+                                    title: "Try Career Counsellor",
+                                    description:
+                                        "Personalized guidance using Perplexity's Sonar APIs to help students navigate their academic journey and find future-proof career opportunities with real-time, AI-driven insights.",
+                                    href: "https://career-compass.tryzent.com/",
+                                },
+                                {
+                                    title: "Exam Paper Generator",
+                                    description:
+                                        "Quickly create customized exam papers tailored to your classroom needs with AI-powered question selection.",
+                                    href: "https://agents.tryzent.com/agents/test-paper-generator",
+                                },
+                            ].map((item) => (
+                                <div key={item.title} className="bg-[#F5F6FA] rounded-xl p-3 sm:p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between">
                                     <div className="flex items-start sm:items-center space-x-3 sm:space-x-6 mb-3 sm:mb-0 w-full sm:w-auto">
                                         <div className="w-12 h-12 sm:w-16 sm:h-16 bg-[#714B9014] rounded-xl flex items-center justify-center flex-shrink-0">
                                             <Image src={SittingPerson} alt="Sitting" className="w-12 h-12 sm:w-18 sm:h-18" />
                                         </div>
                                         <div className="flex-1 pr-2 sm:pr-4">
-                                            <h3 className="font-semibold text-[#46295E] text-base sm:text-lg mb-1 sm:mb-2">Try Career Counsellor</h3>
-                                            <p className="text-xs sm:text-sm text-gray-600 leading-relaxed">
-                                                Ex-founders are always treated with respect for whatever hustle they have put into Ex-founders are always treated with respect for
-                                            </p>
+                                            <h3 className="font-semibold text-[#46295E] text-base sm:text-lg mb-1 sm:mb-2">{item.title}</h3>
+                                            <p className="text-xs sm:text-sm text-gray-600 leading-relaxed">{item.description}</p>
                                         </div>
                                     </div>
                                     <Link
-                                        href="https://career-compass.tryzent.com/"
+                                        href={item.href}
                                         target="_blank"
                                         rel="noopener noreferrer"
                                         className="w-10 h-10 sm:w-12 sm:h-12 bg-[#714B90] rounded-full flex items-center justify-center text-white hover:bg-[#5a3a73] transition-colors flex-shrink-0 self-end sm:self-auto"
@@ -506,23 +517,25 @@ const Dashboard = () => {
 
                             {/* Title */}
                             <h3 className="font-bold text-base sm:text-lg text-gray-900 mb-2 text-center">
-                                Refer & Earn more LeoCoins
+                                Refer & Earn More LeoCoins
                             </h3>
 
                             {/* Description */}
                             <p className="text-xs sm:text-sm text-gray-600 mb-3 text-center leading-relaxed px-2">
-                                Ex-founders are always treated with respect for whatever hustle they have put into
+                                Invite your friends to explore LeoQui and collect LeoCoins when they join.
                             </p>
 
                             {/* Coin reward */}
                             <div className="flex items-center justify-center mb-4 sm:mb-6 space-x-2">
                                 <Image src={LeoCoin} alt="LeoCoin" width={20} height={20} className="w-4 h-4 sm:w-5 sm:h-5 object-contain" />
-                                <span className="font-bold text-base sm:text-lg text-gray-900">{typeof referralCredits === 'number' ? `${referralCredits} per friend` : 'Refer friends to earn'}</span>
+                                <span className="font-bold text-base sm:text-lg text-gray-900">
+                                    {typeof referralCredits === 'number' ? `${referralCredits} LeoCoins per referral` : 'Refer friends to earn rewards'}
+                                </span>
                             </div>
 
                             {/* CTA Button */}
                             <button className="w-full py-2 bg-[#714B90] mb-3 text-white text-sm sm:text-base font-medium rounded-lg hover:bg-[#5a3a73] transition-colors shadow-sm">
-                                Start referring
+                                Refer a Friend
                             </button>
                         </div>
                     </div>

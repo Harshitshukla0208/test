@@ -29,7 +29,6 @@ import {
     PhoneOff,
     FileText,
     BookOpen,
-    XCircle,
 } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
@@ -112,6 +111,20 @@ const getSubjectImage = (rawName: string) => {
     return EnglishImg
 }
 
+// Helper to convert text content into bullet points
+const formatAsBulletPoints = (text: string) => {
+    if (!text) return []
+    
+    // Split by common separators and clean up
+    const points = text
+        .split(/[•\n\r]+/)
+        .map(point => point.trim())
+        .filter(point => point.length > 0)
+        .map(point => point.replace(/^\d+\.\s*/, '')) // Remove numbered lists
+    
+    return points
+}
+
 const Classroom = () => {
     const [profile, setProfile] = useState<Profile | null>(null)
     const [subjects, setSubjects] = useState<string[]>([])
@@ -154,16 +167,49 @@ const Classroom = () => {
     // Lesson Plan States
     const [showLessonPlanModal, setShowLessonPlanModal] = useState(false)
     const [lessonPlanFormData, setLessonPlanFormData] = useState({
-        numberOfLectures: 2,
+        numberOfLectures: 1,
         durationOfLecture: 20,
     })
     const [lessonPlanData, setLessonPlanData] = useState<
         { generated_output?: Record<string, unknown>[] } | Record<string, unknown>[] | null
     >(null)
     const [lessonPlanLoading, setLessonPlanLoading] = useState(false)
-    const [, setLessonPlans] = useState<ThreadObject[]>([])
-    const [, setLessonPlansLoading] = useState(false)
     const [viewingLessonPlan, setViewingLessonPlan] = useState(false)
+
+    // Assessment States
+    const [assessmentData, setAssessmentData] = useState<AssessmentData | null>(null)
+    const [assessmentLoading, setAssessmentLoading] = useState(false)
+    const [viewingAssessment, setViewingAssessment] = useState(false)
+    const [userAnswers, setUserAnswers] = useState<Record<string, string>>({})
+    const [submittingAssessment, setSubmittingAssessment] = useState(false)
+    const [assessmentResult, setAssessmentResult] = useState<AssessmentResult | null>(null)
+    const [viewingAssessmentResult, setViewingAssessmentResult] = useState(false)
+    const [historicalAssessmentData, setHistoricalAssessmentData] = useState<AssessmentData | null>(null)
+    const [viewingHistoricalAssessment, setViewingHistoricalAssessment] = useState(false)
+    const [isViewingHistoricalResult, setIsViewingHistoricalResult] = useState(false)
+
+    const resetAllViews = () => {
+        // Reset lesson plan states
+        setViewingLessonPlan(false)
+        setLessonPlanData(null)
+        setShowLessonPlanModal(false)
+        
+        // Reset assessment states
+        setViewingAssessment(false)
+        setViewingAssessmentResult(false)
+        setViewingHistoricalAssessment(false)
+        setAssessmentData(null)
+        setAssessmentResult(null)
+        setHistoricalAssessmentData(null)
+        setUserAnswers({})
+        setIsViewingHistoricalResult(false)
+        
+        // Reset call states
+        setCallOpen(false)
+        setSelectedThreadId(null)
+        setThreadHistory([])
+        setShowContinueButton(false)
+    }
 
     const searchParams = useSearchParams()
 
@@ -261,26 +307,38 @@ const Classroom = () => {
             .finally(() => setChaptersLoading(false))
     }, [profile, selectedSubject])
 
-    // Fetch threads when profile and selectedSubject are available
-    useEffect(() => {
-        if (!profile || !selectedSubject || !selectedChapter) return
+    const fetchThreadsData = useCallback(async () => {
+        if (!profile || !selectedSubject || !selectedChapter) {
+            setThreads([])
+            return
+        }
+
         setThreadsLoading(true)
         setThreadsError(null)
-        setThreads([])
-        fetch(
-            `/api/livekit/get-all-threads?board=${encodeURIComponent(profile.board)}&subject=${encodeURIComponent(selectedSubject)}&grade=${encodeURIComponent(profile.grade)}&chapter=${encodeURIComponent(selectedChapter.number)}`,
-        )
-            .then((res) => res.json())
-            .then((data) => {
-                if (data?.status && Array.isArray(data.data)) {
-                    setThreads(data.data)
-                } else {
-                    setThreadsError("No history found.")
-                }
-            })
-            .catch(() => setThreadsError("Failed to load history."))
-            .finally(() => setThreadsLoading(false))
+
+        try {
+            const res = await fetch(
+                `/api/livekit/get-all-threads?board=${encodeURIComponent(profile.board)}&subject=${encodeURIComponent(selectedSubject)}&grade=${encodeURIComponent(profile.grade)}&chapter=${encodeURIComponent(selectedChapter.number)}`,
+            )
+            const data = await res.json()
+
+            if (data?.status && Array.isArray(data.data)) {
+                setThreads(data.data)
+            } else {
+                setThreadsError("No history found.")
+            }
+        } catch (error) {
+            console.error("Error fetching threads:", error)
+            setThreadsError("Failed to load history.")
+        } finally {
+            setThreadsLoading(false)
+        }
     }, [profile, selectedSubject, selectedChapter])
+
+    // Fetch threads when profile and selectedSubject are available
+    useEffect(() => {
+        fetchThreadsData()
+    }, [fetchThreadsData])
 
     useEffect(() => {
         const onMouseMove = (e: MouseEvent) => {
@@ -306,78 +364,46 @@ const Classroom = () => {
         }
     }, [])
 
-    // Fetch lesson plans helper (stable via useCallback)
-    const fetchLessonPlans = useCallback(async () => {
-        if (!profile || !selectedSubject || !selectedChapter) return
-        setLessonPlansLoading(true)
-        try {
-            const res = await fetch(
-                `/api/livekit/get-all-threads?board=${encodeURIComponent(profile.board)}&subject=${encodeURIComponent(selectedSubject)}&grade=${encodeURIComponent(profile.grade)}&chapter=${encodeURIComponent(selectedChapter.number)}`,
-            )
-            const data = await res.json()
-            if (data?.status && Array.isArray(data.data)) {
-                // Filter threads to get only lesson plans
-                const lessonPlanThreads = data.data.filter((thread: ThreadObject) => thread.thread_type === "lesson_plan")
-                setLessonPlans(lessonPlanThreads)
-            }
-        } catch (err) {
-            console.error("Error fetching lesson plans", err)
-        } finally {
-            setLessonPlansLoading(false)
-        }
-    }, [profile, selectedSubject, selectedChapter])
-
-    // Fetch lesson plans when profile/subject/chapter change — the callback itself guards required values
-    useEffect(() => {
-        fetchLessonPlans()
-    }, [fetchLessonPlans])
-
-    const fetchThreadById = async (threadId: string, threadType = "tutor") => {
+    const fetchThreadById = async (threadId: string, threadType = 'tutor') => {
         setLoadingThread(true)
         try {
             const res = await fetch(
-                `/api/livekit/get-thread-by-id?threadId=${threadId}&thread_type=${encodeURIComponent(threadType)}`,
+                `/api/livekit/get-thread-by-id?threadId=${threadId}&thread_type=${encodeURIComponent(threadType)}`
             )
             const data = await res.json()
             if (data.status && data.data) {
-                setSelectedThreadId(threadId)
-                setThreadHistory(data.data.thread_data || [])
-                setShowContinueButton(true)
-                setCallOpen(true) // Open the call screen
+                if (threadType === 'assessment') {
+                    // Handle assessment result view
+                    setAssessmentResult({
+                        grade: data.data.grade,
+                        score_summary: data.data.score_summary,
+                        teacher_feedback: data.data.teacher_feedback,
+                        next_step: data.data.next_step || '',
+                    })
+                    // Set historical assessment data for viewing questions and answers
+                    setHistoricalAssessmentData(data.data.exam_data)
+                    setIsViewingHistoricalResult(true) // Mark as historical assessment
+                    setViewingAssessmentResult(true)
+                    setViewingAssessment(false)
+                    setViewingLessonPlan(false)
+                    setViewingHistoricalAssessment(false)
+                    setCallOpen(false)
+                } else if (threadType === 'tutor') {
+                    setSelectedThreadId(threadId)
+                    setThreadHistory(data.data.thread_data || [])
+                    setShowContinueButton(true)
+                    setCallOpen(true)
+                }
             }
         } catch (error) {
-            console.error("Error fetching thread:", error)
+            console.error('Error fetching thread:', error)
         } finally {
             setLoadingThread(false)
         }
     }
 
     const refreshHistory = async () => {
-        // Refresh both threads and lesson plans
-        if (profile && selectedSubject && selectedChapter) {
-            // Refresh threads
-            setThreadsLoading(true)
-            setThreadsError(null)
-            try {
-                const res = await fetch(
-                    `/api/livekit/get-all-threads?board=${encodeURIComponent(profile.board)}&subject=${encodeURIComponent(selectedSubject)}&grade=${encodeURIComponent(profile.grade)}&chapter=${encodeURIComponent(selectedChapter.number)}`,
-                )
-                const data = await res.json()
-                if (data?.status && Array.isArray(data.data)) {
-                    setThreads(data.data)
-                } else {
-                    setThreadsError("No history found.")
-                }
-            } catch (err) {
-                console.error("Error refreshing threads:", err)
-                setThreadsError("Failed to load history.")
-            } finally {
-                setThreadsLoading(false)
-            }
-
-            // Refresh lesson plans
-            await fetchLessonPlans()
-        }
+        await fetchThreadsData()
     }
 
     const fetchLessonPlanById = async (planId: string) => {
@@ -427,8 +453,14 @@ const Classroom = () => {
                 setShowLessonPlanModal(false)
                 setViewingLessonPlan(true)
                 setCallOpen(false)
-                // Refresh lesson plans list
-                fetchLessonPlans()
+                // Reset assessment states to ensure mutual exclusivity
+                setViewingAssessment(false)
+                setViewingAssessmentResult(false)
+                setAssessmentData(null)
+                setUserAnswers({})
+                setAssessmentResult(null)
+                // Refresh history list with the new lesson plan entry
+                fetchThreadsData()
             } else {
                 alert("Failed to generate lesson plan. Please try again.")
             }
@@ -437,6 +469,137 @@ const Classroom = () => {
             alert("Error generating lesson plan. Please try again.")
         } finally {
             setLessonPlanLoading(false)
+        }
+    }
+
+    const generateAssessment = async () => {
+        if (!profile || !selectedSubject || !selectedChapter) {
+            alert('Please select a subject and chapter first.')
+            return
+        }
+
+        setAssessmentLoading(true)
+        try {
+            const res = await fetch('/api/assessment/generate', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    board: profile.board,
+                    grade: profile.grade,
+                    subject: selectedSubject,
+                    chapter: selectedChapter.number,
+                    test_duration: 10,
+                    difficulty: 'easy',
+                    total_marks: 7,
+                }),
+            })
+
+            const data = await res.json()
+            if (data.status && data.data) {
+                setAssessmentData(data.data)
+                setUserAnswers({})
+                setViewingAssessment(true)
+                setViewingAssessmentResult(false)
+                setCallOpen(false)
+                // Reset lesson plan states to ensure mutual exclusivity
+                setViewingLessonPlan(false)
+                setLessonPlanData(null)
+                setShowLessonPlanModal(false)
+            } else {
+                alert('Failed to generate assessment. Please try again.')
+            }
+        } catch (error) {
+            console.error('Error generating assessment:', error)
+            alert('Error generating assessment. Please try again.')
+        } finally {
+            setAssessmentLoading(false)
+        }
+    }
+
+    const submitAssessment = async () => {
+        if (!assessmentData || !profile || !selectedSubject || !selectedChapter) {
+            return
+        }
+
+        setSubmittingAssessment(true)
+        try {
+            // Helper function to extract question number and text
+            const extractQuestionData = (questions: Array<Array<Record<string, string>>>) => {
+                if (!questions || questions.length === 0 || questions[0].length === 0) return []
+
+                return questions[0].map((q) => {
+                    const qNum = Object.keys(q)[0]
+                    const qText = q[qNum]
+                    return {
+                        [qNum]: qText,
+                        [`answer-${qNum}`]: userAnswers[qNum] || '',
+                    }
+                })
+            }
+
+            // Build exam_data structure exactly as shown in the curl example
+            const examData = {
+                General_Instructions: assessmentData.General_Instructions,
+                MCQs: assessmentData.MCQs.length > 0 && assessmentData.MCQs[0].length > 0
+                    ? [extractQuestionData(assessmentData.MCQs)]
+                    : [],
+                True_False_Questions: assessmentData.True_False_Questions.length > 0 && assessmentData.True_False_Questions[0].length > 0
+                    ? [extractQuestionData(assessmentData.True_False_Questions)]
+                    : [],
+                Fill_in_the_Blanks: assessmentData.Fill_in_the_Blanks.length > 0 && assessmentData.Fill_in_the_Blanks[0].length > 0
+                    ? [extractQuestionData(assessmentData.Fill_in_the_Blanks)]
+                    : [],
+                Very_Short_Answers: assessmentData.Very_Short_Answers.length > 0 && assessmentData.Very_Short_Answers[0].length > 0
+                    ? [extractQuestionData(assessmentData.Very_Short_Answers)]
+                    : [],
+                Short_Answers: assessmentData.Short_Answers.length > 0 && assessmentData.Short_Answers[0].length > 0
+                    ? [extractQuestionData(assessmentData.Short_Answers)]
+                    : [],
+                Long_Answers: assessmentData.Long_Answers.length > 0 && assessmentData.Long_Answers[0].length > 0
+                    ? [extractQuestionData(assessmentData.Long_Answers)]
+                    : [],
+                Very_Long_Answers: assessmentData.Very_Long_Answers.length > 0 && assessmentData.Very_Long_Answers[0].length > 0
+                    ? [extractQuestionData(assessmentData.Very_Long_Answers)]
+                    : [],
+                Case_Studies: assessmentData.Case_Studies.length > 0 && assessmentData.Case_Studies[0].length > 0
+                    ? [extractQuestionData(assessmentData.Case_Studies)]
+                    : [],
+                Answers: assessmentData.Answers,
+            }
+
+            const res = await fetch('/api/assessment/evaluate', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    board: profile.board,
+                    grade: profile.grade,
+                    subject: selectedSubject,
+                    chapter: selectedChapter.number,
+                    exam_data: examData,
+                }),
+            })
+
+            const data = await res.json()
+
+            if (data.status && data.data) {
+                setAssessmentResult(data.data)
+                setViewingAssessmentResult(true)
+                setViewingAssessment(false)
+                // Refresh history to show new assessment
+                fetchThreadsData()
+            } else {
+                console.error('Evaluation failed:', data)
+                alert('Failed to evaluate assessment. Please try again.')
+            }
+        } catch (error) {
+            console.error('Error submitting assessment:', error)
+            alert('Error submitting assessment. Please try again.')
+        } finally {
+            setSubmittingAssessment(false)
         }
     }
 
@@ -457,7 +620,7 @@ const Classroom = () => {
 
     const userInitials = `${profile.first_name?.[0] || ""}${profile.last_name?.[0] || ""}`.toUpperCase() || "U"
     // Compute main container classes so we can expand the lesson plan view
-    const mainContainerClass = `${callOpen ? "max-w-3xl" : viewingLessonPlan ? "max-w-5xl" : "max-w-xl"} w-full mx-auto relative z-10 ${callOpen ? "" : viewingLessonPlan ? "" : "bg-[#F5F6FA] rounded-2xl shadow-lg p-6"} ${viewingLessonPlan ? "px-4 md:px-6 py-6" : "px-3 md:px-4"}`
+    const mainContainerClass = `${callOpen ? 'max-w-3xl' : viewingLessonPlan || viewingAssessment || viewingAssessmentResult || viewingHistoricalAssessment ? 'max-w-5xl' : 'max-w-xl'} w-full mx-auto relative z-10 ${callOpen ? '' : viewingLessonPlan || viewingAssessment || viewingAssessmentResult || viewingHistoricalAssessment ? '' : 'bg-[#F5F6FA] rounded-2xl shadow-lg p-6'} ${viewingLessonPlan || viewingAssessment || viewingAssessmentResult || viewingHistoricalAssessment ? 'px-4 md:px-6 py-3' : 'px-3 md:px-4'}`
 
     return (
         <div className="min-h-screen bg-white flex flex-col">
@@ -560,7 +723,10 @@ const Classroom = () => {
                                     return (
                                         <button
                                             key={subject}
-                                            onClick={() => setSelectedSubject(subject)}
+                                            onClick={() => {
+                                                setSelectedSubject(subject)
+                                                resetAllViews()
+                                            }}
                                             className={`w-full flex items-center gap-3 rounded-2xl px-3 py-2 transition-all duration-200 ${isSelected
                                                 ? "bg-white shadow-[0_6px_18px_rgba(113,75,144,0.12)]"
                                                 : "bg-transparent hover:bg-white/70"
@@ -619,16 +785,10 @@ const Classroom = () => {
                                     <button
                                         key={`${chapter.number}-${chapter.title}`}
                                         onClick={() => {
-                                            // Reset middle section when chapter changes
-                                            setCallOpen(false)
-                                            setViewingLessonPlan(false)
-                                            setLessonPlanData(null)
-                                            setSelectedThreadId(null)
-                                            setThreadHistory([])
-                                            setShowContinueButton(false)
                                             setSelectedChapter(chapter)
+                                            resetAllViews()
                                         }}
-                                        className={`w-full flex items-center text-left p-2 rounded-lg text-sm transition-colors ${chapter === selectedChapter ? "bg-[#f4f5fc] text-[#714b90]" : "text-gray-700 hover:bg-gray-100"
+                                        className={`w-full flex items-center text-left p-2 rounded-lg text-sm transition-colors ${chapter === selectedChapter ? "bg-[#f4f5fc] text-[#714b90] shadow-sm" : "text-gray-700 hover:bg-gray-100"
                                             }`}
                                     >
                                         <span
@@ -659,7 +819,7 @@ const Classroom = () => {
                         />
                     </div>
                     <div className={mainContainerClass}>
-                        {!callOpen && !viewingLessonPlan && (
+                        {!callOpen && !viewingLessonPlan && !viewingAssessment && !viewingAssessmentResult && !viewingHistoricalAssessment && (
                             <>
                                 <h1 className="text-2xl font-bold text-gray-900 mb-2">How can I help you,</h1>
                                 <p className="text-gray-600 mb-4">
@@ -703,25 +863,52 @@ const Classroom = () => {
                                             setShowContinueButton(false)
                                             setCallOpen(true)
                                         }}
-                                        className="bg-[#714B90] hover:bg-[#5a3a73] text-white px-6 py-3 rounded-lg text-sm font-medium transition-colors shadow-md hover:shadow-lg flex items-center gap-2"
+                                        className="bg-[#714B90] hover:bg-[#5a3a73] text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors shadow-md hover:shadow-lg flex items-center gap-2"
                                     >
                                         <Mic className="w-4 h-4" />
                                         {connecting ? "Connecting…" : "Start Call"}
                                     </button>
 
+                                    {profile.user_type === "Teacher" && (
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                if (!selectedSubject || !selectedChapter) {
+                                                    alert("Please select a subject and chapter first")
+                                                    return
+                                                }
+                                                setShowLessonPlanModal(true)
+                                            }}
+                                            className="bg-white border-2 border-[#714B90] text-[#714B90] px-4 py-2 rounded-lg text-sm font-medium transition-colors shadow-md hover:shadow-lg hover:bg-[#714B9014] flex items-center gap-2"
+                                        >
+                                            <FileText className="w-4 h-4" />
+                                            Generate Lesson Plan
+                                        </button>
+                                    )}
+
                                     <button
                                         type="button"
                                         onClick={() => {
                                             if (!selectedSubject || !selectedChapter) {
-                                                alert("Please select a subject and chapter first")
+                                                alert('Please select a subject and chapter first')
                                                 return
                                             }
-                                            setShowLessonPlanModal(true)
+                                            generateAssessment()
                                         }}
-                                        className="bg-white border-2 border-[#714B90] text-[#714B90] px-6 py-3 rounded-lg text-sm font-medium transition-colors shadow-md hover:shadow-lg hover:bg-[#714B9014] flex items-center gap-2"
+                                        disabled={assessmentLoading}
+                                        className="bg-white border-2 border-[#714B90] text-[#714B90] px-4 py-2 rounded-lg text-sm font-medium transition-colors shadow-md hover:shadow-lg hover:bg-[#714B9014] flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                                     >
-                                        <FileText className="w-4 h-4" />
-                                        Generate Lesson Plan
+                                        {assessmentLoading ? (
+                                            <>
+                                                <div className="w-4 h-4 truncate border-2 border-[#714B90] border-t-transparent rounded-full animate-spin"></div>
+                                                Generating...
+                                            </>
+                                        ) : (
+                                            <>
+                                                <FileText className="w-4 h-4" />
+                                                Give Assessment
+                                            </>
+                                        )}
                                     </button>
                                 </div>
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -758,6 +945,12 @@ const Classroom = () => {
                                         onClick={() => {
                                             setViewingLessonPlan(false)
                                             setLessonPlanData(null)
+                                            // Reset assessment states to ensure mutual exclusivity
+                                            setViewingAssessment(false)
+                                            setViewingAssessmentResult(false)
+                                            setAssessmentData(null)
+                                            setUserAnswers({})
+                                            setAssessmentResult(null)
                                         }}
                                         className="text-[#714B90] hover:underline text-sm font-medium"
                                     >
@@ -779,19 +972,38 @@ const Classroom = () => {
                                                     <div className="space-y-4 text-sm text-gray-700">
                                                         <div>
                                                             <h4 className="font-semibold text-gray-900 mb-2">Learning Objectives:</h4>
-                                                            <p className="whitespace-pre-wrap leading-relaxed">
-                                                                {String(lesson.Learning_Objectives)}
-                                                            </p>
+                                                            <ul className="space-y-1">
+                                                                {formatAsBulletPoints(String(lesson.Learning_Objectives)).map((point, idx) => (
+                                                                    <li key={idx} className="flex items-start">
+                                                                        <span className="text-[#714B90] mr-2 mt-1">•</span>
+                                                                        <span className="text-gray-700">{point}</span>
+                                                                    </li>
+                                                                ))}
+                                                            </ul>
                                                         </div>
 
                                                         <div>
                                                             <h4 className="font-semibold text-gray-900 mb-2">Learning Outcomes:</h4>
-                                                            <p className="whitespace-pre-wrap leading-relaxed">{String(lesson.Learning_Outcomes)}</p>
+                                                            <ul className="space-y-1">
+                                                                {formatAsBulletPoints(String(lesson.Learning_Outcomes)).map((point, idx) => (
+                                                                    <li key={idx} className="flex items-start">
+                                                                        <span className="text-[#714B90] mr-2 mt-1">•</span>
+                                                                        <span className="text-gray-700">{point}</span>
+                                                                    </li>
+                                                                ))}
+                                                            </ul>
                                                         </div>
 
                                                         <div>
                                                             <h4 className="font-semibold text-gray-900 mb-2">Materials Required:</h4>
-                                                            <p className="whitespace-pre-wrap leading-relaxed">{String(lesson.Materials_Required)}</p>
+                                                            <ul className="space-y-1">
+                                                                {formatAsBulletPoints(String(lesson.Materials_Required)).map((point, idx) => (
+                                                                    <li key={idx} className="flex items-start">
+                                                                        <span className="text-[#714B90] mr-2 mt-1">•</span>
+                                                                        <span className="text-gray-700">{point}</span>
+                                                                    </li>
+                                                                ))}
+                                                            </ul>
                                                         </div>
 
                                                         {Boolean(lesson.Step_by_Step_Instructional_Plan) &&
@@ -799,15 +1011,20 @@ const Classroom = () => {
                                                             lesson.Step_by_Step_Instructional_Plan !== null && (
                                                                 <div>
                                                                     <h4 className="font-semibold text-gray-900 mb-2">Instructional Plan:</h4>
-                                                                    <div className="space-y-2 pl-4">
+                                                                    <div className="space-y-4">
                                                                         {Object.entries(
                                                                             lesson.Step_by_Step_Instructional_Plan as Record<string, unknown>,
                                                                         ).map(([key, value]) => (
                                                                             <div key={key}>
-                                                                                <p className="font-medium text-gray-800">{key.replace(/_/g, " ")}:</p>
-                                                                                <p className="whitespace-pre-wrap leading-relaxed text-gray-600">
-                                                                                    {String(value)}
-                                                                                </p>
+                                                                                <h5 className="font-semibold text-gray-800 mb-2">{key.replace(/_/g, " ")}:</h5>
+                                                                                <ul className="space-y-1">
+                                                                                    {formatAsBulletPoints(String(value)).map((point, idx) => (
+                                                                                        <li key={idx} className="flex items-start">
+                                                                                            <span className="text-[#714B90] mr-2 mt-1">•</span>
+                                                                                            <span className="text-gray-600">{point}</span>
+                                                                                        </li>
+                                                                                    ))}
+                                                                                </ul>
                                                                             </div>
                                                                         ))}
                                                                     </div>
@@ -816,9 +1033,14 @@ const Classroom = () => {
 
                                                         <div>
                                                             <h4 className="font-semibold text-gray-900 mb-2">Real Life Applications:</h4>
-                                                            <p className="whitespace-pre-wrap leading-relaxed">
-                                                                {String(lesson.Real_Life_Applications)}
-                                                            </p>
+                                                            <ul className="space-y-1">
+                                                                {formatAsBulletPoints(String(lesson.Real_Life_Applications)).map((point, idx) => (
+                                                                    <li key={idx} className="flex items-start">
+                                                                        <span className="text-[#714B90] mr-2 mt-1">•</span>
+                                                                        <span className="text-gray-700">{point}</span>
+                                                                    </li>
+                                                                ))}
+                                                            </ul>
                                                         </div>
 
                                                         {Boolean(lesson.Web_Resources) &&
@@ -857,6 +1079,57 @@ const Classroom = () => {
                                     )}
                                 </div>
                             </div>
+                        )}
+
+                        {!callOpen && viewingAssessment && assessmentData && (
+                            <AssessmentView
+                                assessmentData={assessmentData}
+                                userAnswers={userAnswers}
+                                setUserAnswers={setUserAnswers}
+                                onSubmit={submitAssessment}
+                                submitting={submittingAssessment}
+                                onBack={() => {
+                                    setViewingAssessment(false)
+                                    setAssessmentData(null)
+                                    setUserAnswers({})
+                                    // Reset lesson plan states to ensure mutual exclusivity
+                                    setViewingLessonPlan(false)
+                                    setLessonPlanData(null)
+                                    setShowLessonPlanModal(false)
+                                }}
+                            />
+                        )}
+
+                        {!callOpen && viewingAssessmentResult && assessmentResult && (
+                            <AssessmentResultView
+                                result={assessmentResult}
+                                onBack={() => {
+                                    setViewingAssessmentResult(false)
+                                    setAssessmentResult(null)
+                                    setHistoricalAssessmentData(null)
+                                    setIsViewingHistoricalResult(false)
+                                    // Reset lesson plan states to ensure mutual exclusivity
+                                    setViewingLessonPlan(false)
+                                    setLessonPlanData(null)
+                                    setShowLessonPlanModal(false)
+                                }}
+                                onViewAssessment={() => {
+                                    setViewingAssessmentResult(false)
+                                    setViewingHistoricalAssessment(true)
+                                }}
+                                isHistorical={isViewingHistoricalResult}
+                            />
+                        )}
+
+                        {!callOpen && viewingHistoricalAssessment && historicalAssessmentData && (
+                            <HistoricalAssessmentView
+                                assessmentData={historicalAssessmentData}
+                                userAnswers={historicalAssessmentData.Answers}
+                                onBack={() => {
+                                    setViewingHistoricalAssessment(false)
+                                    setViewingAssessmentResult(true)
+                                }}
+                            />
                         )}
 
                         {callOpen && (
@@ -913,7 +1186,7 @@ const Classroom = () => {
                                                 }
                                             }}
                                             disabled={connecting}
-                                            className="w-full bg-[#714B90] hover:bg-[#5a3a73] text-white px-6 py-3 rounded-lg text-sm font-medium transition-colors shadow-md hover:shadow-lg disabled:opacity-50"
+                                            className="w-full bg-[#714B90] hover:bg-[#5a3a73] text-white px-6 py-3 rounded-lg text-sm font-medium transition-colors shadow-md hover:shadow-lg disabled:opacity-50 mt-5"
                                         >
                                             {connecting ? "Connecting..." : "Continue Conversation"}
                                         </button>
@@ -931,7 +1204,7 @@ const Classroom = () => {
                                 <div className="flex justify-between items-center mb-6">
                                     <h2 className="text-xl font-bold text-gray-900">Lesson Plan Configuration</h2>
                                     <button onClick={() => setShowLessonPlanModal(false)} className="text-gray-700 hover:text-gray-700">
-                                        <XCircle className="w-6 h-6" />
+                                        <X className="w-6 h-6" />
                                     </button>
                                 </div>
 
@@ -991,9 +1264,9 @@ const Classroom = () => {
                             </div>
                         </div>
                     )}
+
                 </div>
 
-                {/* Activity History Sidebar */}
                 {/* Activity History Sidebar */}
                 <div className="w-64 bg-gray-50 min-h-full border-r border-l border-gray-300 p-4">
                     <div>
@@ -1038,7 +1311,7 @@ const Classroom = () => {
                         >
                             + New Conversation
                         </button>
-                        <div className="space-y-2 h-[calc(100vh-180px)] overflow-y-auto pr-2">
+                         <div className="space-y-2 h-[calc(100vh-180px)] overflow-y-auto pr-2 scrollbar-hide">
                             {threadsLoading ? (
                                 <div className="text-gray-500 text-xs px-2">Loading history...</div>
                             ) : threadsError ? (
@@ -1047,16 +1320,18 @@ const Classroom = () => {
                                 <div className="text-gray-500 text-xs px-2">No history found.</div>
                             ) : (
                                 threads.map((thread, index) => {
-                                    const isLessonPlan = thread.thread_type === "lesson_plan"
+                                    // const isLessonPlan = thread.thread_type === "lesson_plan"
 
                                     return (
                                         <button
                                             key={thread.thread_id || index}
                                             onClick={() => {
-                                                if (isLessonPlan) {
+                                                if (thread.thread_type === 'lesson_plan') {
                                                     fetchLessonPlanById(thread.thread_id)
+                                                } else if (thread.thread_type === 'assessment') {
+                                                    fetchThreadById(thread.thread_id, 'assessment')
                                                 } else {
-                                                    fetchThreadById(thread.thread_id, thread.thread_type)
+                                                    fetchThreadById(thread.thread_id, 'tutor')
                                                 }
                                             }}
                                             disabled={loadingThread}
@@ -1064,8 +1339,10 @@ const Classroom = () => {
                                         >
                                             <div className="flex items-start gap-2 mb-1.5">
                                                 <div className="flex-shrink-0 mt-0.5">
-                                                    {isLessonPlan ? (
+                                                    {thread.thread_type === 'lesson_plan' ? (
                                                         <FileText className="w-4 h-4 text-[#714B90]" />
+                                                    ) : thread.thread_type === 'assessment' ? (
+                                                        <BookOpen className="w-4 h-4 text-[#714B90]" />
                                                     ) : (
                                                         <BookOpen className="w-4 h-4 text-[#714B90]" />
                                                     )}
@@ -1076,12 +1353,14 @@ const Classroom = () => {
                                                     </h4>
                                                     <div className="flex items-center gap-2 flex-wrap">
                                                         <span
-                                                            className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium ${isLessonPlan
-                                                                    ? "bg-yellow-50 text-[#714B90] border border-[#714B9033]"
-                                                                    : "bg-purple-50 text-[#714B90] border border-purple-200"
+                                                            className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium ${thread.thread_type === 'lesson_plan'
+                                                                ? 'bg-yellow-50 text-[#714B90] border border-[#714B9033]'
+                                                                : thread.thread_type === 'assessment'
+                                                                    ? 'bg-green-50 text-[#714B90] border border-green-200'
+                                                                    : 'bg-purple-50 text-[#714B90] border border-purple-200'
                                                                 }`}
                                                         >
-                                                            {isLessonPlan ? "Lesson Plan" : "Tutor Session"}
+                                                            {thread.thread_type === 'lesson_plan' ? 'Lesson Plan' : thread.thread_type === 'assessment' ? 'Assessment' : 'Tutor Session'}
                                                         </span>
                                                         <span className="text-[10px] text-gray-500">
                                                             {new Date(thread.updated_at).toLocaleDateString("en-US", {
@@ -1143,6 +1422,33 @@ export type ThreadDetailData = {
     created_at: string
 }
 
+type AssessmentData = {
+    General_Instructions: string
+    MCQs: Array<Array<Record<string, string>>>
+    True_False_Questions: Array<Array<Record<string, string>>>
+    Fill_in_the_Blanks: Array<Array<Record<string, string>>>
+    Very_Short_Answers: Array<Array<Record<string, string>>>
+    Short_Answers: Array<Array<Record<string, string>>>
+    Long_Answers: Array<Array<Record<string, string>>>
+    Very_Long_Answers: Array<Array<Record<string, string>>>
+    Case_Studies: Array<Array<Record<string, string>>>
+    Answers: Record<string, string>
+}
+
+type AssessmentResult = {
+    grade: string
+    score_summary: {
+        score: number
+        total: number
+        remark: string
+    }
+    teacher_feedback: {
+        positive_note: string
+        improvement_note: string
+    }
+    next_step: string
+}
+
 function ClassroomMessages({
     onFirstMessage,
     historyMessages = [],
@@ -1194,7 +1500,7 @@ function ClassroomMessages({
     }
 
     return (
-        <div ref={containerRef} className="space-y-3 h-[65vh] overflow-y-auto pr-2 pb-4 md:pb-6">
+        <div ref={containerRef} className="space-y-3 h-[65vh] overflow-y-auto pr-2 pb-4 md:pb-6 scrollbar-hide">
             {allMessages.map((m) => {
                 // Fix: Only check identity if it exists on both sides
                 let isLocal = false
@@ -1400,6 +1706,266 @@ function ClassroomControlBar({
                         </div>
                     </div>
                 </div>
+            </div>
+        </div>
+    )
+}
+
+function AssessmentView({
+    assessmentData,
+    userAnswers,
+    setUserAnswers,
+    onSubmit,
+    submitting,
+    onBack,
+}: {
+    assessmentData: AssessmentData
+    userAnswers: Record<string, string>
+    setUserAnswers: (answers: Record<string, string>) => void
+    onSubmit: () => void
+    submitting: boolean
+    onBack: () => void
+}) {
+    const handleAnswerChange = (questionNum: string, value: string) => {
+        setUserAnswers({ ...userAnswers, [questionNum]: value })
+    }
+
+    const renderQuestionSection = (
+        title: string,
+        questions: Array<Array<Record<string, string>>>,
+        inputType: 'radio' | 'text' | 'textarea'
+    ) => {
+        if (!questions || questions.length === 0 || questions[0].length === 0) return null
+
+        return (
+            <div className="mb-8">
+                <h3 className="text-lg font-bold text-[#714B90] mb-4">{title}</h3>
+                {questions[0].map((q, idx) => {
+                    const qNum = Object.keys(q)[0]
+                    const qText = q[qNum]
+
+                    return (
+                        <div key={idx} className="mb-6 p-4 bg-gray-50 rounded-lg">
+                            <p className="font-medium text-gray-900 mb-3">
+                                Q{qNum}. {inputType === 'radio' && qText.includes('Options:') ? qText.split('Options:')[0].trim() : qText}
+                            </p>
+
+                            {inputType === 'radio' && qText.includes('Options:') ? (
+                                <div className="space-y-2">
+                                    {qText
+                                        .split('Options:')[1]
+                                        .split('\n')
+                                        .filter((opt) => opt.trim())
+                                        .map((option, optIdx) => (
+                                            <label key={optIdx} className="flex items-center gap-2 cursor-pointer">
+                                                <input
+                                                    type="radio"
+                                                    name={`q-${qNum}`}
+                                                    value={option.trim()[0]}
+                                                    checked={userAnswers[qNum] === option.trim()[0]}
+                                                    onChange={(e) => handleAnswerChange(qNum, e.target.value)}
+                                                    className="w-4 h-4 text-[#714B90] focus:ring-[#714B90]"
+                                                />
+                                                <span className="text-gray-700">{option.trim()}</span>
+                                            </label>
+                                        ))}
+                                </div>
+                            ) : inputType === 'textarea' ? (
+                                <textarea
+                                    value={userAnswers[qNum] || ''}
+                                    onChange={(e) => handleAnswerChange(qNum, e.target.value)}
+                                    placeholder="Enter your answer..."
+                                    rows={4}
+                                    className="w-full border border-gray-300 rounded-lg px-4 py-2 text-gray-700 focus:ring-2 focus:ring-[#714B90] focus:border-transparent outline-none"
+                                />
+                            ) : (
+                                <input
+                                    type="text"
+                                    value={userAnswers[qNum] || ''}
+                                    onChange={(e) => handleAnswerChange(qNum, e.target.value)}
+                                    placeholder="Enter your answer..."
+                                    className="w-full border border-gray-300 rounded-lg px-4 py-2 text-gray-700 focus:ring-2 focus:ring-[#714B90] focus:border-transparent outline-none"
+                                />
+                            )}
+                        </div>
+                    )
+                })}
+            </div>
+        )
+    }
+
+    return (
+        <div className="h-[86vh] flex flex-col max-w-5xl mx-auto px-3 md:px-6 py-3">
+            <div className="flex justify-between items-center mb-4 flex-shrink-0">
+                <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+                    <FileText className="w-6 h-6 text-[#714B90]" />
+                    Assessment
+                </h2>
+                <button onClick={onBack} className="text-[#714B90] hover:underline text-sm font-medium">
+                    ← Back to Options
+                </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto border border-gray-200 rounded-xl p-4 md:p-6 bg-white mb-4">
+                <div className="bg-gray-50 p-4 rounded-lg mb-6">
+                    <h3 className="font-bold text-gray-900 mb-2">General Instructions</h3>
+                    <p className="text-sm text-gray-700 whitespace-pre-line">{assessmentData.General_Instructions}</p>
+                </div>
+
+                {renderQuestionSection('Multiple Choice Questions', assessmentData.MCQs, 'radio')}
+                {renderQuestionSection('True/False Questions', assessmentData.True_False_Questions, 'radio')}
+                {renderQuestionSection('Fill in the Blanks', assessmentData.Fill_in_the_Blanks, 'text')}
+                {renderQuestionSection('Very Short Answers', assessmentData.Very_Short_Answers, 'text')}
+                {renderQuestionSection('Short Answers', assessmentData.Short_Answers, 'textarea')}
+                {renderQuestionSection('Long Answers', assessmentData.Long_Answers, 'textarea')}
+                {renderQuestionSection('Very Long Answers', assessmentData.Very_Long_Answers, 'textarea')}
+                {renderQuestionSection('Case Studies', assessmentData.Case_Studies, 'textarea')}
+            </div>
+
+            <button
+                onClick={onSubmit}
+                disabled={submitting}
+                className="w-full bg-[#714B90] text-white px-6 py-2 rounded-lg font-medium hover:bg-[#5a3a73] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0"
+            >
+                {submitting ? (
+                    <span className="flex items-center justify-center gap-2">
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                        Submitting...
+                    </span>
+                ) : (
+                    'Submit Assessment'
+                )}
+            </button>
+        </div>
+    )
+}
+
+function AssessmentResultView({ result, onBack, onViewAssessment, isHistorical = false }: { result: AssessmentResult; onBack: () => void; onViewAssessment?: () => void; isHistorical?: boolean }) {
+    return (
+        <div className="h-[86vh] flex flex-col max-w-5xl mx-auto px-3 md:px-6 py-3">
+            <div className="flex justify-between items-center mb-4 flex-shrink-0">
+                <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+                    <FileText className="w-6 h-6 text-[#714B90]" />
+                    Assessment Results
+                </h2>
+                <button onClick={onBack} className="text-[#714B90] hover:underline text-sm font-medium">
+                    ← Back to Options
+                </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto border border-gray-200 rounded-xl p-4 md:p-5 bg-white mb-4 scrollbar-hide">
+                <div className="text-center mb-6">
+                    <p className="text-2xl font-bold text-gray-900">
+                        {result.score_summary.score} / {result.score_summary.total}
+                    </p>
+                    <p className="text-gray-600 mt-2">{result.score_summary.remark}</p>
+                </div>
+
+                <div className="space-y-4">
+                    <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                        <h3 className="font-bold text-green-900 mb-2">Strengths</h3>
+                        <p className="text-sm text-green-800">{result.teacher_feedback.positive_note}</p>
+                    </div>
+
+                    <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                        <h3 className="font-bold text-yellow-900 mb-2">Areas for Improvement</h3>
+                        <p className="text-sm text-yellow-800">{result.teacher_feedback.improvement_note}</p>
+                    </div>
+
+                    {result.next_step && (
+                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                            <h3 className="font-bold text-blue-900 mb-2">Next Steps</h3>
+                            <p className="text-sm text-blue-800">{result.next_step}</p>
+                        </div>
+                    )}
+                </div>
+            </div>
+
+            {onViewAssessment && isHistorical && (
+                <button
+                    onClick={onViewAssessment}
+                    className="w-full bg-[#714B90] text-white px-6 py-2 rounded-lg font-medium hover:bg-[#5a3a73] transition-colors flex-shrink-0"
+                >
+                    View Assessment Questions & Answers
+                </button>
+            )}
+        </div>
+    )
+}
+
+function HistoricalAssessmentView({
+    assessmentData,
+    userAnswers,
+    onBack,
+}: {
+    assessmentData: AssessmentData
+    userAnswers: Record<string, string>
+    onBack: () => void
+}) {
+    const renderQuestionSection = (
+        title: string,
+        questions: Array<Array<Record<string, string>>>
+    ) => {
+        if (!questions || questions.length === 0 || questions[0].length === 0) return null
+
+        return (
+            <div className="mb-8">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4 pb-2 border-b border-gray-200">
+                    {title}
+                </h3>
+                <div className="space-y-4">
+                    {questions[0].map((question, index) => {
+                        const questionNum = Object.keys(question).find(key => !key.startsWith('answer-')) || ''
+                        const questionText = question[questionNum] || ''
+                        const answerKey = `answer-${questionNum}`
+                        const userAnswer = userAnswers[questionNum] || question[answerKey] || ''
+
+                        return (
+                            <div key={index} className="bg-gray-50 p-4 rounded-lg">
+                                <div className="mb-3">
+                                    <p className="font-medium text-gray-900 mb-2">
+                                        Question {questionNum}: {questionText.includes('Options:') ? questionText.split('Options:')[0].trim() : questionText}
+                                    </p>
+                                </div>
+                                <div className="bg-white p-3 rounded border">
+                                    <p className="text-sm text-gray-600 mb-1">Your Answer:</p>
+                                    <p className="text-gray-900 font-medium">{userAnswer}</p>
+                                </div>
+                            </div>
+                        )
+                    })}
+                </div>
+            </div>
+        )
+    }
+
+
+    return (
+        <div className="h-[86vh] flex flex-col max-w-5xl mx-auto px-3 md:px-6 py-3">
+            <div className="flex justify-between items-center mb-4 flex-shrink-0">
+                <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+                    <FileText className="w-6 h-6 text-[#714B90]" />
+                    Completed Assessment
+                </h2>
+                <button onClick={onBack} className="text-[#714B90] hover:underline text-sm font-medium">
+                    ← Back to Results
+                </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto border border-gray-200 rounded-xl p-4 md:p-6 bg-white mb-4">
+                <div className="bg-gray-50 p-4 rounded-lg mb-6">
+                    <h3 className="font-bold text-gray-900 mb-2">General Instructions</h3>
+                    <p className="text-sm text-gray-700 whitespace-pre-line">{assessmentData.General_Instructions}</p>
+                </div>
+
+                {renderQuestionSection('Multiple Choice Questions', assessmentData.MCQs)}
+                {renderQuestionSection('True/False Questions', assessmentData.True_False_Questions)}
+                {renderQuestionSection('Fill in the Blanks', assessmentData.Fill_in_the_Blanks)}
+                {renderQuestionSection('Very Short Answers', assessmentData.Very_Short_Answers)}
+                {renderQuestionSection('Short Answers', assessmentData.Short_Answers)}
+                {renderQuestionSection('Long Answers', assessmentData.Long_Answers)}
+                {renderQuestionSection('Very Long Answers', assessmentData.Very_Long_Answers)}
+                {renderQuestionSection('Case Studies', assessmentData.Case_Studies)}
             </div>
         </div>
     )

@@ -1,107 +1,84 @@
-import { Button } from "@/components/ui/button"
-import Link from "next/link"
+import Link from 'next/link';
+import LogoImage from '@/assets/create-profile/LeoQuiIconBall.png'
+import Image from 'next/image';
 
-export function Footer() {
-  return (
-    <footer className="w-full px-6 py-16 bg-gray-900 text-white">
-      <div className="max-w-6xl mx-auto">
-        <div className="grid md:grid-cols-4 gap-8 mb-12">
-          {/* Logo and description */}
-          <div className="md:col-span-1">
-            <div className="flex items-center gap-2 mb-4">
-              <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-sm">L</span>
-              </div>
-              <span className="text-xl font-semibold">LeoQui</span>
+const Footer = () => {
+    return (
+        <footer className="bg-gray-900 text-white py-8">
+            <div className="max-w-6xl mx-auto px-4">
+                {/* Main footer content */}
+                <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center space-y-6 lg:space-y-0">
+
+                    {/* Logo and company info section */}
+                    <div className="flex flex-col items-center lg:items-start space-y-3">
+                        {/* Company Logo */}
+                        <div className="flex items-center space-x-3">
+                            <Image src={LogoImage} alt='logo' className='mb-1 h-5 w-5 sm:h-7 sm:w-7 rounded-md' />
+                            <div className="flex flex-col">
+                                <Link href='/'>
+                                    <span className="text-xl font-semibold text-white">LeoQui</span>
+                                </Link>
+                            </div>
+                        </div>
+
+                    </div>
+                    {/* Links section */}
+                    <div className="flex flex-col sm:flex-row items-center space-y-4 sm:space-y-0 sm:space-x-8">
+                        <Link
+                            target="_blank"
+                            href="/privacy-policy"
+                            className="text-gray-300 hover:text-white transition-colors duration-200 text-sm font-medium"
+                        >
+                            Privacy Policy
+                        </Link>
+                        <Link
+                            target="_blank"
+                            href="/terms-and-conditions"
+                            className="text-gray-300 hover:text-white transition-colors duration-200 text-sm font-medium"
+                        >
+                            Terms & Conditions
+                        </Link>
+                    </div>
+                </div>
+
+                {/* Divider */}
+                <div className="border-t border-gray-700 my-6"></div>
+
+                {/* Bottom section with copyright */}
+                <div className="flex flex-col sm:flex-row justify-between items-center space-y-4 sm:space-y-0">
+                    <p className="text-gray-400 text-sm text-center sm:text-left">
+                        © 2025 Tryzent Technologies Private Limited. All rights reserved.
+                    </p>
+
+                    {/* Social links - LinkedIn and YouTube */}
+                    <div className="flex space-x-4">
+                        <a
+                            href="https://www.linkedin.com/company/tryzent-tech"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-gray-400 hover:text-white transition-colors duration-200"
+                            aria-label="LinkedIn"
+                        >
+                            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" />
+                            </svg>
+                        </a>
+                        <a
+                            href="https://www.youtube.com/@Tryzent"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-gray-400 hover:text-white transition-colors duration-200"
+                            aria-label="YouTube"
+                        >
+                            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z" />
+                            </svg>
+                        </a>
+                    </div>
+                </div>
             </div>
-            <p className="text-gray-400 text-sm leading-relaxed">
-              Empowering the future of education through AI-powered learning experiences.
-            </p>
-          </div>
+        </footer>
+    );
+};
 
-          {/* Links columns */}
-          <div>
-            <h4 className="font-semibold mb-4">Product</h4>
-            <ul className="space-y-2 text-sm text-gray-400">
-              <li>
-                <a href="#" className="hover:text-white">
-                  Features
-                </a>
-              </li>
-              <li>
-                <a href="#" className="hover:text-white">
-                  Pricing
-                </a>
-              </li>
-              <li>
-                <a href="#" className="hover:text-white">
-                  API
-                </a>
-              </li>
-              <li>
-                <a href="#" className="hover:text-white">
-                  Documentation
-                </a>
-              </li>
-            </ul>
-          </div>
-
-          <div>
-            <h4 className="font-semibold mb-4">Company</h4>
-            <ul className="space-y-2 text-sm text-gray-400">
-              <li>
-                <a href="#" className="hover:text-white">
-                  About
-                </a>
-              </li>
-              <li>
-                <a href="#" className="hover:text-white">
-                  Blog
-                </a>
-              </li>
-              <li>
-                <a href="#" className="hover:text-white">
-                  Careers
-                </a>
-              </li>
-              <li>
-                <a href="#" className="hover:text-white">
-                  Contact
-                </a>
-              </li>
-            </ul>
-          </div>
-
-          <div>
-            <h4 className="font-semibold mb-4">Stay Updated</h4>
-            <p className="text-gray-400 text-sm mb-4">Get the latest updates and educational insights.</p>
-            <div className="flex gap-2">
-              <input
-                type="email"
-                placeholder="Enter your email"
-                className="flex-1 px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-sm focus:outline-none focus:border-primary"
-              />
-              <Button className="bg-primary hover:bg-primary/90 px-4 py-2 text-sm">Subscribe</Button>
-            </div>
-          </div>
-        </div>
-
-        {/* Bottom bar */}
-        <div className="border-t border-gray-800 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
-          <p className="text-gray-400 text-sm">© 2025 LeoQui. All rights reserved.</p>
-          <div className="flex gap-6 text-sm text-gray-400">
-            <Link href="/privacy-policy" className="hover:text-white">
-              Privacy Policy
-            </Link>
-            <Link href="/terms-and-conditions" className="hover:text-white">
-              Terms &amp; Conditions
-            </Link>
-            <a href="#" className="hover:text-white">
-              Cookie Policy
-            </a>
-          </div>
-        </div>
-      </div>
-    </footer>
-  )
-}
+export default Footer;

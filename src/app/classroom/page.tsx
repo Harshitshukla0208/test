@@ -42,8 +42,8 @@ import ScienceImg from "@/assets/ScienceImg.svg"
 import FrameBg from "@/assets/Frame100000.png"
 import AskQuestionsImg from "@/assets/AskQuestionsImg.svg"
 import HomeWorkImg from "@/assets/HomeWorkImg.svg"
+import LPGImg from "@/assets/EnglishImg.svg"
 import StudyNotesImg from "@/assets/StudyNotesImg.svg"
-import PracticeQuestionsImg from "@/assets/PracticeQuestionsImg.svg"
 import ReactMarkdown from "react-markdown"
 import { AudioNoteSummarizerLoader } from "@/components/loader"
 import type { AppConfig } from "@/hooks/useConnectionDetails"
@@ -69,34 +69,24 @@ type Profile = {
 
 const studyOptions = [
     {
-        img: AskQuestionsImg,
-        title: "Ask Questions",
-        description: "Provides comprehensive solutions to all your doubts",
+        img: HomeWorkImg,
+        title: "Start Learning",
+        description: "Learn this chapter interactively with LeoQui, your voice tutor.",
     },
     {
-        img: HomeWorkImg,
-        title: "Homework Help",
-        description: "Provides comprehensive solutions to all your doubts",
+        img: AskQuestionsImg,
+        title: "Ask Doubts",
+        description: "Get instant answers to your questions.",
     },
     {
         img: StudyNotesImg,
-        title: "Study Notes",
-        description: "Provides comprehensive solutions to all your doubts",
+        title: "Assessments",
+        description: "Take a short exam to check your progress.",
     },
     {
-        img: PracticeQuestionsImg,
-        title: "Practice Questions",
-        description: "Provides comprehensive solutions to all your doubts",
-    },
-    {
-        img: HomeWorkImg,
-        title: "This or that",
-        description: "Provides comprehensive solutions to all your doubts",
-    },
-    {
-        img: HomeWorkImg,
-        title: "Flash Cards",
-        description: "Provides comprehensive solutions to all your doubts",
+        img: LPGImg,
+        title: "Generate Lesson Plan",
+        description: "Auto-generate NEP-aligned lesson plans for your class.",
     },
 ]
 
@@ -823,11 +813,11 @@ const Classroom = () => {
                             <>
                                 <h1 className="text-2xl font-bold text-gray-900 mb-2">How can I help you,</h1>
                                 <p className="text-gray-600 mb-4">
-                                    I&apos;m Clara, your AI study assistant. Select an option below to start learning{" "}
+                                    I&apos;m LeoQui, your AI study assistant. Select an option below to start learning{" "}
                                     {selectedChapter ? `Chapter ${selectedChapter.number}` : "this chapter"}
                                 </p>
                                 <div className="mb-5 flex gap-3">
-                                    <button
+                                    {/* <button
                                         type="button"
                                         onClick={async () => {
                                             if (!selectedSubject) {
@@ -909,25 +899,90 @@ const Classroom = () => {
                                                 Give Assessment
                                             </>
                                         )}
-                                    </button>
+                                    </button> */}
                                 </div>
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div className="grid grid-cols-2 gap-4">
                                     {studyOptions.map((option, index) => (
                                         <div
                                             key={index}
                                             className="bg-white rounded-xl p-2 cursor-pointer hover:shadow-md transition-shadow flex flex-col items-center justify-between h-full"
+                                            onClick={async () => {
+                                                // Apply Start Call behavior to "Start Learning" and "Ask Doubts"
+                                                if (option.title === "Start Learning" || option.title === "Ask Doubts") {
+                                                    if (!selectedSubject) {
+                                                        alert("Please select a subject before starting the call.")
+                                                        return
+                                                    }
+                                                    if (!selectedChapter) {
+                                                        alert("Please select a chapter before starting the call.")
+                                                        return
+                                                    }
+                                                    setCallOpen(true)
+                                                    if (room.state === "disconnected") {
+                                                        try {
+                                                            setConnecting(true)
+                                                            const details = await fetchConnectionDetailsWithConfig({
+                                                                username: profile.first_name,
+                                                                board: profile.board,
+                                                                grade: profile.grade,
+                                                                subject: selectedSubject,
+                                                                chapter: selectedChapter?.number ?? "",
+                                                                participantIdentity: profile.profile_id,
+                                                            })
+                                                            await room.connect(details.serverUrl, details.participantToken)
+                                                            await room.localParticipant.setMicrophoneEnabled(true, undefined, { preConnectBuffer: true })
+                                                        } catch (e) {
+                                                            console.error("connect error", e)
+                                                        } finally {
+                                                            setConnecting(false)
+                                                        }
+                                                    }
+                                                    setSelectedThreadId(null)
+                                                    setThreadHistory([])
+                                                    setShowContinueButton(false)
+                                                    setCallOpen(true)
+                                                }
+                                                // Apply Give Assessment behavior to "Assessments"
+                                                else if (option.title === "Assessments") {
+                                                    if (!selectedSubject || !selectedChapter) {
+                                                        alert('Please select a subject and chapter first')
+                                                        return
+                                                    }
+                                                    generateAssessment()
+                                                }
+                                                // Apply Generate Lesson Plan behavior to "Generate Lesson Plan"
+                                                else if (option.title === "Generate Lesson Plan") {
+                                                    if (profile.user_type !== "Teacher") {
+                                                        alert("This feature is only available for teachers.")
+                                                        return
+                                                    }
+                                                    if (!selectedSubject || !selectedChapter) {
+                                                        alert("Please select a subject and chapter first")
+                                                        return
+                                                    }
+                                                    setShowLessonPlanModal(true)
+                                                }
+                                            }}
                                         >
                                             <div className="mb-2 flex items-center justify-center w-full">
-                                                <Image
-                                                    src={option.img || "/placeholder.svg"}
-                                                    alt={option.title + " image"}
-                                                    width={80}
-                                                    height={80}
-                                                    className="w-20 h-20 object-contain"
-                                                />
+                                                {option.title === "Assessments" && assessmentLoading ? (
+                                                    <div className="w-20 h-20 flex items-center justify-center">
+                                                        <div className="w-8 h-8 border-2 border-[#714B90] border-t-transparent rounded-full animate-spin"></div>
+                                                    </div>
+                                                ) : (
+                                                    <Image
+                                                        src={option.img || "/placeholder.svg"}
+                                                        alt={option.title + " image"}
+                                                        width={80}
+                                                        height={80}
+                                                        className="w-20 h-20 object-contain"
+                                                    />
+                                                )}
                                             </div>
-                                            <h3 className="font-semibold text-gray-700 mb-1 text-sm">{option.title}</h3>
-                                            <p className="text-gray-500 text-xs line-clamp-3">{option.description}</p>
+                                            <h3 className="font-semibold text-gray-700 mb-1 text-sm">
+                                                {option.title === "Assessments" && assessmentLoading ? "Generating..." : option.title}
+                                            </h3>
+                                            <p className="text-gray-500 text-xs text-center line-clamp-3">{option.description}</p>
                                         </div>
                                     ))}
                                 </div>
@@ -1143,6 +1198,17 @@ const Classroom = () => {
                                                 : "Start by asking questions for this chapter"}
                                         </div>
                                     </div>
+                                    <button
+                                        onClick={() => {
+                                            setCallOpen(false)
+                                            setSelectedThreadId(null)
+                                            setThreadHistory([])
+                                            setShowContinueButton(false)
+                                        }}
+                                        className="text-[#714B90] hover:underline text-sm font-medium"
+                                    >
+                                        ← Back to Options
+                                    </button>
                                 </div>
                                 <div className="relative overflow-hidden pt-2 pb-3">
                                     <RoomAudioRenderer />

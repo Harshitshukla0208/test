@@ -10,6 +10,7 @@ import Image from 'next/image';
 import LeoCoin from '@/assets/Coin.png'
 import StreakIcon from '@/assets/Streak.svg'
 import SittingPerson from '@/assets/Sitting.png'
+import HumanImg from '@/assets/human.png'
 import BoardIcon from '@/assets/Category.svg'
 import GradeIcon from '@/assets/Ticket Star.svg'
 import ReferAndEarnImage from '@/assets/ReferImage.svg'
@@ -394,8 +395,14 @@ const Dashboard = () => {
                             ].map((item) => (
                                 <div key={item.title} className="bg-[#F5F6FA] rounded-xl p-3 sm:p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between">
                                     <div className="flex items-start sm:items-center space-x-3 sm:space-x-6 mb-3 sm:mb-0 w-full sm:w-auto">
-                                        <div className="w-12 h-12 sm:w-16 sm:h-16 bg-[#714B9014] rounded-xl flex items-center justify-center flex-shrink-0">
-                                            <Image src={SittingPerson} alt="Sitting" className="w-12 h-12 sm:w-18 sm:h-18" />
+                                        <div className="flex items-center justify-center flex-shrink-0">
+                                            <Image 
+                                                src={item.title === "Exam Paper Generator" ? HumanImg : SittingPerson} 
+                                                alt={item.title === "Exam Paper Generator" ? "Human" : "Sitting"} 
+                                                width={80}
+                                                height={80}
+                                                className="w-14 h-14 sm:w-16 sm:h-16 object-contain" 
+                                            />
                                         </div>
                                         <div className="flex-1 pr-2 sm:pr-4">
                                             <h3 className="font-semibold text-[#46295E] text-base sm:text-lg mb-1 sm:mb-2">{item.title}</h3>

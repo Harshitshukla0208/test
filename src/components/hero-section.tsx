@@ -1,21 +1,42 @@
 "use client"
-import { useRef, useEffect } from "react"
+import { useRef, useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { useRouter } from "next/navigation"
 import { motion } from "framer-motion"
-import { ArrowRight } from "lucide-react"
+import { ArrowRight, Play, Pause, Volume2, VolumeX } from "lucide-react"
 
 export function HeroSection() {
   const videoRef = useRef<HTMLVideoElement>(null)
   const router = useRouter()
+  const [isPlaying, setIsPlaying] = useState(false)
+  const [isMuted, setIsMuted] = useState(true)
 
   useEffect(() => {
     if (videoRef.current) {
       videoRef.current.play().catch(error => {
         console.log("Video autoplay prevented:", error)
       })
+      setIsPlaying(true)
     }
   }, [])
+
+  const togglePlayPause = () => {
+    if (videoRef.current) {
+      if (isPlaying) {
+        videoRef.current.pause()
+      } else {
+        videoRef.current.play()
+      }
+      setIsPlaying(!isPlaying)
+    }
+  }
+
+  const toggleMute = () => {
+    if (videoRef.current) {
+      videoRef.current.muted = !isMuted
+      setIsMuted(!isMuted)
+    }
+  }
 
   return (
     <section className="w-full min-h-[92vh] flex items-center px-6 py-16 bg-gradient-to-b from-[#FFFBF2] to-[#FFF8E7] relative overflow-hidden">
@@ -80,6 +101,32 @@ export function HeroSection() {
                   Your browser does not support the video tag.
                 </video>
                 <div className="absolute inset-0 bg-gradient-to-tr from-primary/5 via-transparent to-transparent pointer-events-none"></div>
+                
+                {/* Video Controls */}
+                <div className="absolute bottom-4 right-4 flex gap-2">
+                  <Button
+                    onClick={togglePlayPause}
+                    size="sm"
+                    className="bg-black/70 hover:bg-black/80 text-white border-0 rounded-full w-10 h-10 p-0 flex items-center justify-center backdrop-blur-sm"
+                  >
+                    {isPlaying ? (
+                      <Pause className="w-4 h-4" />
+                    ) : (
+                      <Play className="w-4 h-4 ml-0.5" />
+                    )}
+                  </Button>
+                  <Button
+                    onClick={toggleMute}
+                    size="sm"
+                    className="bg-black/70 hover:bg-black/80 text-white border-0 rounded-full w-10 h-10 p-0 flex items-center justify-center backdrop-blur-sm"
+                  >
+                    {isMuted ? (
+                      <VolumeX className="w-4 h-4" />
+                    ) : (
+                      <Volume2 className="w-4 h-4" />
+                    )}
+                  </Button>
+                </div>
               </div>
             </div>
           </div>

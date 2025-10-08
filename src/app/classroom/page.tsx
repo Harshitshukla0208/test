@@ -153,6 +153,7 @@ const Classroom = () => {
     const [threadHistory, setThreadHistory] = useState<ThreadMessage[]>([])
     const [loadingThread, setLoadingThread] = useState(false)
     const [showContinueButton, setShowContinueButton] = useState(false)
+    const [studyMode, setStudyMode] = useState<'ask' | 'learn' | 'historical' | null>(null)
 
     // Lesson Plan States
     const [showLessonPlanModal, setShowLessonPlanModal] = useState(false)
@@ -382,6 +383,7 @@ const Classroom = () => {
                     setSelectedThreadId(threadId)
                     setThreadHistory(data.data.thread_data || [])
                     setShowContinueButton(true)
+                    setStudyMode('historical')
                     setCallOpen(true)
                 }
             }
@@ -917,6 +919,7 @@ const Classroom = () => {
                                                         alert("Please select a chapter before starting the call.")
                                                         return
                                                     }
+                                                    setStudyMode(option.title === 'Ask Doubts' ? 'ask' : 'learn')
                                                     setCallOpen(true)
                                                     if (room.state === "disconnected") {
                                                         try {
@@ -1191,11 +1194,23 @@ const Classroom = () => {
                             <RoomContext.Provider value={room}>
                                 <div className="mb-3 md:mb-4 flex items-center justify-between">
                                     <div>
-                                        <div className="text-sm font-semibold text-[#714B90]">Ask Questions</div>
+                                        <div className="text-sm font-semibold text-[#714B90]">
+                                            {showContinueButton
+                                                ? "Continue Conversation"
+                                                : studyMode === 'ask'
+                                                    ? "Ask Doubts"
+                                                    : studyMode === 'learn'
+                                                        ? "Start Learning"
+                                                        : "Ask Questions"}
+                                        </div>
                                         <div className="text-xs text-gray-500">
                                             {showContinueButton
-                                                ? "Review your previous conversation"
-                                                : "Start by asking questions for this chapter"}
+                                                ? "You are viewing a previous conversation. Click Continue to resume."
+                                                : studyMode === 'ask'
+                                                    ? "Ask your doubts for this chapter."
+                                                    : studyMode === 'learn'
+                                                        ? "Start learning this chapter with your tutor."
+                                                        : "Start by selecting a study option to begin."}
                                         </div>
                                     </div>
                                     <button
@@ -1204,6 +1219,7 @@ const Classroom = () => {
                                             setSelectedThreadId(null)
                                             setThreadHistory([])
                                             setShowContinueButton(false)
+                                            setStudyMode(null)
                                         }}
                                         className="text-[#714B90] hover:underline text-sm font-medium"
                                     >

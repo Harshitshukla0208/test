@@ -10,6 +10,7 @@ export function HeroSection() {
   const router = useRouter()
   const [isPlaying, setIsPlaying] = useState(false)
   const [isMuted, setIsMuted] = useState(true)
+  const [showControls, setShowControls] = useState(true)
 
   useEffect(() => {
     if (videoRef.current) {
@@ -18,6 +19,8 @@ export function HeroSection() {
       })
       setIsPlaying(true)
     }
+    const hideTimer = setTimeout(() => setShowControls(false), 2000)
+    return () => clearTimeout(hideTimer)
   }, [])
 
   const togglePlayPause = () => {
@@ -87,7 +90,7 @@ export function HeroSection() {
           {/* Right Column - Video */}
           <div className="relative w-full flex justify-center lg:justify-end">
             <div className="relative w-full max-w-2xl">
-              <div className="relative aspect-video rounded-3xl overflow-hidden shadow-2xl ring-1 ring-gray-200 transform hover:scale-105 transition-transform duration-500">
+              <div className="group relative aspect-video rounded-3xl overflow-hidden shadow-2xl ring-1 ring-gray-200 transform hover:scale-105 transition-transform duration-500">
                 <video
                   ref={videoRef}
                   className="w-full h-full object-cover"
@@ -103,7 +106,13 @@ export function HeroSection() {
                 <div className="absolute inset-0 bg-gradient-to-tr from-primary/5 via-transparent to-transparent pointer-events-none"></div>
                 
                 {/* Video Controls */}
-                <div className="absolute bottom-4 right-4 flex gap-2">
+                <div
+                  className={
+                    `absolute bottom-4 right-4 flex gap-2 transition-opacity duration-300 ` +
+                    `${showControls ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'} ` +
+                    `group-hover:opacity-100 group-hover:pointer-events-auto`
+                  }
+                >
                   <Button
                     onClick={togglePlayPause}
                     size="sm"

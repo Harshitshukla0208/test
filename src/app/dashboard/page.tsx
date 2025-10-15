@@ -21,6 +21,7 @@ import MathsImg from '@/assets/MathsImg.svg';
 import ScienceImg from '@/assets/ScienceImg.svg';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { logout } from '@/utils/auth';
+import { fetchWithAuth } from '@/lib/apiClient';
 
 // Types for API data
 type CreditsMasterItem = { event: string; credits: number }
@@ -52,7 +53,7 @@ type GetUserProfileResponse = {
 }
 
 const fetchUserProfile = async (): Promise<GetUserProfileResponse> => {
-    const response = await fetch('/api/get-user-profile', { method: 'GET' })
+    const response = await fetchWithAuth('/api/get-user-profile', { method: 'GET' })
     const data = await response.json()
     if (!response.ok) {
         throw new Error(data?.message || 'Failed to fetch profile')
@@ -105,7 +106,7 @@ const Dashboard = () => {
         const fetchSubjects = async (board: string, grade: string) => {
             setSubjectsLoading(true)
             try {
-                const response = await fetch(`/api/dropdown-values?board=${encodeURIComponent(board)}&grade=${encodeURIComponent(grade)}`)
+                const response = await fetchWithAuth(`/api/dropdown-values?board=${encodeURIComponent(board)}&grade=${encodeURIComponent(grade)}`)
                 const data = await response.json()
                 // Support both shapes: { data: { data: string[] } } and { data: string[] }
                 const list: string[] = data?.data?.data || data?.data || []

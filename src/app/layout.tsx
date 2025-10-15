@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import { SonnerProvider } from "@/components/providers/sonner-provider";
+import { ToastProvider } from "@/components/providers/toast-provider";
 
 export const metadata: Metadata = {
   title: "LeoQui | AI Learning Platform for Students, Parents & Teachers",
@@ -15,7 +15,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`antialiased`}>
-        <SonnerProvider />
+        <ToastProvider />
         {children}
       </body>
     </html>

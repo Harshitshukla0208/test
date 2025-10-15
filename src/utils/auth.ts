@@ -30,7 +30,34 @@ export const deleteCookie = (name: string) => {
 
 export const isAuthenticated = (): boolean => {
     const token = getCookie('access_token')
-    return !!token && token !== 'undefined' && token.trim() !== ''
+    return !!token && token !== 'undefined' && token.trim() !== '' && !isJwtExpired(token)
+}
+
+export const getAccessToken = (): string | null => {
+    return getCookie('access_token')
+}
+
+export const isJwtExpired = (token: string | null | undefined): boolean => {
+    if (!token) return true
+    try {
+        const [, payloadBase64] = token.split('.')
+        if (!payloadBase64) return true
+        const payloadJson = typeof atob !== 'undefined' ? atob(payloadBase64.replace(/-/g, '+').replace(/_/g, '/')) : Buffer.from(payloadBase64, 'base64').toString('utf-8')
+        const payload = JSON.parse(payloadJson) as { exp?: number }
+        if (!payload.exp) return true
+        const nowSeconds = Math.floor(Date.now() / 1000)
+        return payload.exp <= nowSeconds
+    } catch {
+        return true
+    }
+}
+
+export const redirectToLoginExpired = () => {
+    deleteCookie('access_token')
+    deleteCookie('login_id')
+    if (typeof window !== 'undefined') {
+        window.location.href = '/login?reason=expired'
+    }
 }
 
 export const logout = () => {
@@ -43,13 +70,8 @@ export const logout = () => {
 
 export const checkUserProfile = async (): Promise<{ exists: boolean; profile?: unknown }> => {
     try {
-        const response = await fetch('/api/get-user-profile')
-
-        if (response.status === 401) {
-            // Token expired or invalid
-            logout()
-            return { exists: false }
-        }
+        // Use auth-aware fetch; it will redirect on 401/missing/expired
+        const response = await (await import('@/lib/apiClient')).fetchWithAuth('/api/get-user-profile')
 
         if (!response.ok) {
             return { exists: false }

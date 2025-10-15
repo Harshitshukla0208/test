@@ -1,6 +1,6 @@
 "use client"
 import { useEffect, useState, useCallback, useMemo } from 'react'
-import { toast } from 'sonner'
+import toast from 'react-hot-toast'
 import { X } from 'lucide-react'
 
 interface ProfileShape {

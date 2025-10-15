@@ -1,6 +1,7 @@
 import { useCallback, useState, useMemo } from 'react';
 import { decodeJwt } from 'jose';
 import type { ConnectionDetails } from '@/pages/api/connection-details';
+import { fetchWithAuth } from '@/lib/apiClient';
 
 // --- BEGIN: Refactored to use Next.js API ---
 const ONE_MINUTE_IN_MILLISECONDS = 60 * 1000;
@@ -20,7 +21,7 @@ export interface AppConfig {
 async function fetchConnectionDetailsFromAPI(config: AppConfig): Promise<ConnectionDetails> {
   console.log('Fetching connection details with config:', config);
 
-  const response = await fetch('/api/livekit/start-session', {
+  const response = await fetchWithAuth('/api/livekit/start-session', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',

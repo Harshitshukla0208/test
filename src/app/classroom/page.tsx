@@ -1,4 +1,5 @@
 "use client"
+import { fetchWithAuth } from '@/lib/apiClient'
 import React, { useState, useEffect, useRef, useMemo, useCallback } from "react"
 import { useSearchParams } from "next/navigation"
 import { withProtectedRoute } from "@/components/ProtectedRoute"
@@ -104,14 +105,14 @@ const getSubjectImage = (rawName: string) => {
 // Helper to convert text content into bullet points
 const formatAsBulletPoints = (text: string) => {
     if (!text) return []
-    
+
     // Split by common separators and clean up
     const points = text
         .split(/[•\n\r]+/)
         .map(point => point.trim())
         .filter(point => point.length > 0)
         .map(point => point.replace(/^\d+\.\s*/, '')) // Remove numbered lists
-    
+
     return points
 }
 
@@ -179,12 +180,30 @@ const Classroom = () => {
     const [viewingHistoricalAssessment, setViewingHistoricalAssessment] = useState(false)
     const [isViewingHistoricalResult, setIsViewingHistoricalResult] = useState(false)
 
-    const resetAllViews = () => {
+    // Add these new states after existing useState declarations
+    const [micMode, setMicMode] = useState<'ptt' | 'alwaysOn'>('ptt') // Default to Push-to-Talk
+    const [isVKeyPressed, setIsVKeyPressed] = useState(false)
+    const [isMicButtonHeld, setIsMicButtonHeld] = useState(false)
+
+    const resetAllViews = async () => {
+        // If in a call, properly disconnect before resetting
+        if (callOpen && room.state === "connected") {
+            try {
+                await room.disconnect()
+                // Refresh history after disconnect
+                setTimeout(() => {
+                    refreshHistory()
+                }, 2000)
+            } catch (error) {
+                console.error("Error disconnecting room:", error)
+            }
+        }
+
         // Reset lesson plan states
         setViewingLessonPlan(false)
         setLessonPlanData(null)
         setShowLessonPlanModal(false)
-        
+
         // Reset assessment states
         setViewingAssessment(false)
         setViewingAssessmentResult(false)
@@ -194,12 +213,14 @@ const Classroom = () => {
         setHistoricalAssessmentData(null)
         setUserAnswers({})
         setIsViewingHistoricalResult(false)
-        
+
         // Reset call states
         setCallOpen(false)
         setSelectedThreadId(null)
         setThreadHistory([])
         setShowContinueButton(false)
+        setStudyMode(null)
+        setFirstMessageArrived(false)
     }
 
     const searchParams = useSearchParams()
@@ -209,7 +230,7 @@ const Classroom = () => {
         const userData = searchParams?.get("userData")
         async function fetchProfile() {
             try {
-                const res = await fetch("/api/get-user-profile")
+                const res = await fetchWithAuth("/api/get-user-profile")
                 if (!res.ok) throw new Error("Failed to fetch profile")
                 const data = await res.json()
                 if (data?.data?.profile) {
@@ -244,7 +265,7 @@ const Classroom = () => {
         setSubjectsError(null)
         setSubjects([])
         setSelectedSubject("")
-        fetch(`/api/dropdown-values?board=${encodeURIComponent(profile.board)}&grade=${encodeURIComponent(profile.grade)}`)
+        fetchWithAuth(`/api/dropdown-values?board=${encodeURIComponent(profile.board)}&grade=${encodeURIComponent(profile.grade)}`)
             .then((res) => res.json())
             .then((data) => {
                 const list = data?.data?.data || data?.data || []
@@ -277,7 +298,7 @@ const Classroom = () => {
         setChaptersError(null)
         setChapters([])
         setSelectedChapter(null)
-        fetch(
+        fetchWithAuth(
             `/api/dropdown-values?board=${encodeURIComponent(profile.board)}&grade=${encodeURIComponent(profile.grade)}&subject=${encodeURIComponent(selectedSubject)}`,
         )
             .then((res) => res.json())
@@ -308,7 +329,7 @@ const Classroom = () => {
         setThreadsError(null)
 
         try {
-            const res = await fetch(
+            const res = await fetchWithAuth(
                 `/api/livekit/get-all-threads?board=${encodeURIComponent(profile.board)}&subject=${encodeURIComponent(selectedSubject)}&grade=${encodeURIComponent(profile.grade)}&chapter=${encodeURIComponent(selectedChapter.number)}`,
             )
             const data = await res.json()
@@ -358,7 +379,7 @@ const Classroom = () => {
     const fetchThreadById = async (threadId: string, threadType = 'tutor') => {
         setLoadingThread(true)
         try {
-            const res = await fetch(
+            const res = await fetchWithAuth(
                 `/api/livekit/get-thread-by-id?threadId=${threadId}&thread_type=${encodeURIComponent(threadType)}`
             )
             const data = await res.json()
@@ -400,7 +421,7 @@ const Classroom = () => {
 
     const fetchLessonPlanById = async (planId: string) => {
         try {
-            const res = await fetch(`/api/livekit/get-thread-by-id?threadId=${planId}&thread_type=lesson_plan`)
+            const res = await fetchWithAuth(`/api/livekit/get-thread-by-id?threadId=${planId}&thread_type=lesson_plan`)
             const data = await res.json()
             if (data.status && data.data) {
                 setLessonPlanData(data.data)
@@ -420,7 +441,7 @@ const Classroom = () => {
 
         setLessonPlanLoading(true)
         try {
-            const res = await fetch("/api/lesson-plan/generate", {
+            const res = await fetchWithAuth("/api/lesson-plan/generate", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -472,7 +493,7 @@ const Classroom = () => {
 
         setAssessmentLoading(true)
         try {
-            const res = await fetch('/api/assessment/generate', {
+            const res = await fetchWithAuth('/api/assessment/generate', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -561,7 +582,7 @@ const Classroom = () => {
                 Answers: assessmentData.Answers,
             }
 
-            const res = await fetch('/api/assessment/evaluate', {
+            const res = await fetchWithAuth('/api/assessment/evaluate', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -843,7 +864,7 @@ const Classroom = () => {
                                                         participantIdentity: profile.profile_id,
                                                     })
                                                     await room.connect(details.serverUrl, details.participantToken)
-                                                    await room.localParticipant.setMicrophoneEnabled(true, undefined, { preConnectBuffer: true })
+                                                    await room.localParticipant.setMicrophoneEnabled(false, undefined, { preConnectBuffer: true })
                                                 } catch (e) {
                                                     console.error("connect error", e)
                                                 } finally {
@@ -933,7 +954,7 @@ const Classroom = () => {
                                                                 participantIdentity: profile.profile_id,
                                                             })
                                                             await room.connect(details.serverUrl, details.participantToken)
-                                                            await room.localParticipant.setMicrophoneEnabled(true, undefined, { preConnectBuffer: true })
+                                                            await room.localParticipant.setMicrophoneEnabled(false, undefined, { preConnectBuffer: true })
                                                         } catch (e) {
                                                             console.error("connect error", e)
                                                         } finally {
@@ -1257,7 +1278,7 @@ const Classroom = () => {
                                                         }
                                                         const details = await fetchConnectionDetailsWithConfig(config)
                                                         await room.connect(details.serverUrl, details.participantToken)
-                                                        await room.localParticipant.setMicrophoneEnabled(true, undefined, {
+                                                        await room.localParticipant.setMicrophoneEnabled(false, undefined, {
                                                             preConnectBuffer: true,
                                                         })
                                                     } catch (e) {
@@ -1273,8 +1294,16 @@ const Classroom = () => {
                                             {connecting ? "Connecting..." : "Continue Conversation"}
                                         </button>
                                     ) : (
-                                        <ClassroomControlBar setCallOpen={setCallOpen} refreshHistory={refreshHistory} />
-                                    )}
+                                        <ClassroomControlBar
+                                            setCallOpen={setCallOpen}
+                                            refreshHistory={refreshHistory}
+                                            micMode={micMode}
+                                            setMicMode={setMicMode}
+                                            isVKeyPressed={isVKeyPressed}
+                                            setIsVKeyPressed={setIsVKeyPressed}
+                                            isMicButtonHeld={isMicButtonHeld}
+                                            setIsMicButtonHeld={setIsMicButtonHeld}
+                                        />)}
                                 </div>
                             </RoomContext.Provider>
                         )}
@@ -1378,7 +1407,7 @@ const Classroom = () => {
                                             participantIdentity: profile.profile_id,
                                         })
                                         await room.connect(details.serverUrl, details.participantToken)
-                                        await room.localParticipant.setMicrophoneEnabled(true, undefined, { preConnectBuffer: true })
+                                        await room.localParticipant.setMicrophoneEnabled(false, undefined, { preConnectBuffer: true })
                                     } catch (e) {
                                         console.error("connect error", e)
                                     } finally {
@@ -1393,7 +1422,7 @@ const Classroom = () => {
                         >
                             + New Conversation
                         </button>
-                         <div className="space-y-2 h-[calc(100vh-180px)] overflow-y-auto pr-2 scrollbar-hide">
+                        <div className="space-y-2 h-[calc(100vh-180px)] overflow-y-auto pr-2 scrollbar-hide">
                             {threadsLoading ? (
                                 <div className="text-gray-500 text-xs px-2">Loading history...</div>
                             ) : threadsError ? (
@@ -1622,7 +1651,22 @@ function ClassroomMessages({
 function ClassroomControlBar({
     setCallOpen,
     refreshHistory,
-}: { setCallOpen: (open: boolean) => void; refreshHistory: () => void }) {
+    micMode,
+    setMicMode,
+    isVKeyPressed,
+    setIsVKeyPressed,
+    isMicButtonHeld,
+    setIsMicButtonHeld,
+}: {
+    setCallOpen: (open: boolean) => void;
+    refreshHistory: () => void;
+    micMode: 'ptt' | 'alwaysOn';
+    setMicMode: (mode: 'ptt' | 'alwaysOn') => void;
+    isVKeyPressed: boolean;
+    setIsVKeyPressed: (pressed: boolean) => void;
+    isMicButtonHeld: boolean;
+    setIsMicButtonHeld: (held: boolean) => void;
+}) {
     // Force all controls to be visible
     const visibleControls = {
         microphone: true,
@@ -1642,6 +1686,71 @@ function ClassroomControlBar({
     // Track video state
     const cameraTrack = localParticipant?.getTrackPublication(Track.Source.Camera)
     const isCameraEnabled = cameraTrack?.track && !cameraTrack?.isMuted
+
+    // Ensure microphone stays disabled by default; no auto-enable logic
+    const micResetDoneRef = React.useRef(false)
+    // Mirror microphone toggle state into primitives/functions to satisfy exhaustive-deps
+    const micEnabled = microphoneToggle?.enabled
+    const micPending = microphoneToggle?.pending
+    const micToggle = microphoneToggle?.toggle
+    React.useEffect(() => {
+        // Only run once when we transition to connected; avoid re-running due to changing toggle object identity
+        if (room?.state === "connected") {
+            if (!micResetDoneRef.current && micEnabled && !micPending) {
+                micToggle?.(false)
+            }
+            micResetDoneRef.current = true
+        } else {
+            // reset flag when disconnected so next connection will re-apply default
+            micResetDoneRef.current = false
+        }
+    }, [room?.state, micEnabled, micPending, micToggle]) // depend on primitives/functions to appease linter
+
+    // Keyboard listener for Push-to-Talk (V key)
+    React.useEffect(() => {
+        if (micMode !== 'ptt' || room?.state !== 'connected') return
+
+        const handleKeyDown = (e: KeyboardEvent) => {
+            // Ignore if user is typing in an input/textarea or contentEditable
+            const target = e.target as HTMLElement | null
+            const tag = target?.tagName?.toLowerCase()
+            const isEditable = target?.getAttribute && target.getAttribute('contenteditable') === 'true'
+            if (tag === 'input' || tag === 'textarea' || isEditable) return
+
+            // Only respond to first keydown (ignore autorepeat)
+            if ((e.key === 'v' || e.key === 'V') && !e.repeat) {
+                setIsVKeyPressed(true)
+                if (!micPending) {
+                    // ensure toggle(true) is called; guard in case toggle not ready
+                    micToggle?.(true)
+                }
+            }
+        }
+
+        const handleKeyUp = (e: KeyboardEvent) => {
+            if (e.key === 'v' || e.key === 'V') {
+                setIsVKeyPressed(false)
+                if (!micPending) {
+                    micToggle?.(false)
+                }
+            }
+        }
+
+        window.addEventListener('keydown', handleKeyDown)
+        window.addEventListener('keyup', handleKeyUp)
+
+        return () => {
+            window.removeEventListener('keydown', handleKeyDown)
+            window.removeEventListener('keyup', handleKeyUp)
+        }
+    }, [micMode, room?.state, micEnabled, micPending, micToggle, setIsVKeyPressed]) // include primitives/functions
+
+    // Cleanup: Disable mic when switching to PTT mode (but don't cut off active PTT/touch)
+    React.useEffect(() => {
+        if (micMode === 'ptt' && micEnabled && !isVKeyPressed && !isMicButtonHeld && !micPending) {
+            micToggle?.(false)
+        }
+    }, [micMode, micEnabled, micPending, isVKeyPressed, isMicButtonHeld, micToggle]) // include active flags
 
     async function sendMessage() {
         if (!canSend || !message.trim()) return
@@ -1707,22 +1816,60 @@ function ClassroomControlBar({
                             {visibleControls.microphone && (
                                 <div className="flex items-center gap-1">
                                     <button
-                                        onClick={() => microphoneToggle.toggle()}
+                                        onClick={() => {
+                                            if (micMode === 'alwaysOn') {
+                                                microphoneToggle.toggle()
+                                            }
+                                        }}
+                                        onTouchStart={(e) => {
+                                            if (micMode === 'ptt') {
+                                                e.preventDefault()
+                                                setIsMicButtonHeld(true)
+                                                microphoneToggle.toggle(true)
+                                            }
+                                        }}
+                                        onTouchEnd={(e) => {
+                                            if (micMode === 'ptt') {
+                                                e.preventDefault()
+                                                setIsMicButtonHeld(false)
+                                                microphoneToggle.toggle(false)
+                                            }
+                                        }}
+                                        onMouseDown={(e) => {
+                                            // Desktop: Only handle in Always On mode, V key handles PTT
+                                            if (micMode === 'ptt') {
+                                                e.preventDefault() // Prevent click in PTT mode on desktop
+                                            }
+                                        }}
                                         disabled={microphoneToggle.pending}
-                                        className={`relative inline-flex items-center justify-center gap-1 rounded-xl px-3 py-2 text-sm font-medium transition-all shadow-md hover:shadow-lg active:scale-95 ${microphoneToggle.enabled
+                                        className={`relative inline-flex items-center justify-center gap-1 rounded-xl px-3 py-2 text-sm font-medium transition-all shadow-md hover:shadow-lg active:scale-95 ${microphoneToggle.enabled || isVKeyPressed || isMicButtonHeld
                                             ? "bg-[#714B90] text-white hover:bg-[#5a3a73]"
                                             : "bg-gray-300 text-gray-700 hover:bg-gray-400"
                                             } ${microphoneToggle.pending ? "opacity-60 cursor-wait" : ""}`}
                                     >
                                         {microphoneToggle.pending ? (
                                             <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                                        ) : microphoneToggle.enabled ? (
+                                        ) : (microphoneToggle.enabled || isVKeyPressed || isMicButtonHeld) ? (
                                             <Mic className="w-4 h-4" />
                                         ) : (
                                             <MicOff className="w-4 h-4" />
                                         )}
-                                        <span className="hidden sm:inline">{microphoneToggle.enabled ? "Mic On" : "Mic Off"}</span>
+                                        <span className="hidden sm:inline">
+                                            {micMode === 'ptt'
+                                                ? (isVKeyPressed || isMicButtonHeld ? 'Speaking' : 'Hold V')
+                                                : (microphoneToggle.enabled ? "Mic On" : "Mic Off")
+                                            }
+                                        </span>
                                     </button>
+                                    {/* Mic mode selector (compact) */}
+                                    <select
+                                        value={micMode}
+                                        onChange={(e) => setMicMode(e.target.value as 'ptt' | 'alwaysOn')}
+                                        className="ml-1 inline-flex items-center rounded-lg border bg-white px-2 py-1 text-[10px] font-medium text-gray-700 hover:bg-gray-50 cursor-pointer"
+                                    >
+                                        <option value="ptt">Push to Talk</option>
+                                        <option value="alwaysOn">Always On</option>
+                                    </select>
                                 </div>
                             )}
                             {/* Camera Control */}
@@ -1743,7 +1890,7 @@ function ClassroomControlBar({
                                         ) : (
                                             <VideoOff className="w-4 h-4" />
                                         )}
-                                        <span className="hidden sm:inline">{cameraToggle.enabled ? "Video On" : "Video Off"}</span>
+                                                                               <span className="hidden sm:inline">{cameraToggle.enabled ? "Video On" : "Video Off"}</span>
                                     </button>
                                 </div>
                             )}
@@ -2057,20 +2204,20 @@ function DraggableVideoPreviewer({ children }: { children: React.ReactNode }) {
     const [position, setPosition] = useState({ x: 0, y: 0 })
     const [dragging, setDragging] = useState(false)
     const [offset, setOffset] = useState({ x: 0, y: 0 })
-    const previewRef = useRef<HTMLDivElement>(null)
+    const previewRef = useRef<HTMLDivElement | null>(null)
 
     // Default position: above input, right side
     useEffect(() => {
         if (previewRef.current) {
-            const input = document.querySelector('input[placeholder="Type your message..."]')
+            const input = document.querySelector('input[placeholder="Type your message..."]') as HTMLElement | null
             if (input) {
                 const inputRect = input.getBoundingClientRect()
                 setPosition({
-                    x: inputRect.right - 120, // moved more right (was -160)
-                    y: inputRect.top - 160, // moved more upward (was -120)
+                    x: inputRect.right - 120,
+                    y: inputRect.top - 160,
                 })
             } else {
-                setPosition({ x: window.innerWidth - 140, y: window.innerHeight - 260 }) // fallback, more right/up
+                setPosition({ x: window.innerWidth - 140, y: window.innerHeight - 260 })
             }
         }
     }, [])
@@ -2083,6 +2230,7 @@ function DraggableVideoPreviewer({ children }: { children: React.ReactNode }) {
         })
     }
     const onMouseUp = () => setDragging(false)
+
     useEffect(() => {
         const onMouseMove = (e: MouseEvent) => {
             if (dragging) {
@@ -2096,10 +2244,8 @@ function DraggableVideoPreviewer({ children }: { children: React.ReactNode }) {
         if (dragging) {
             window.addEventListener("mousemove", onMouseMove)
             window.addEventListener("mouseup", onMouseUp)
-        } else {
-            window.removeEventListener("mousemove", onMouseMove)
-            window.removeEventListener("mouseup", onMouseUp)
         }
+
         return () => {
             window.removeEventListener("mousemove", onMouseMove)
             window.removeEventListener("mouseup", onMouseUp)
@@ -2109,6 +2255,7 @@ function DraggableVideoPreviewer({ children }: { children: React.ReactNode }) {
     return (
         <div
             ref={previewRef}
+            onMouseDown={onMouseDown}
             style={{
                 position: "fixed",
                 left: position.x,
@@ -2117,13 +2264,11 @@ function DraggableVideoPreviewer({ children }: { children: React.ReactNode }) {
                 height: 120,
                 zIndex: 9999,
                 cursor: dragging ? "grabbing" : "grab",
-                boxShadow: "0 4px 16px rgba(0,0,0,0.25)",
                 borderRadius: 12,
-                background: "#222",
+                boxShadow: "0 6px 18px rgba(0,0,0,0.25)",
                 overflow: "hidden",
                 userSelect: "none",
             }}
-            onMouseDown={onMouseDown}
         >
             {children}
         </div>

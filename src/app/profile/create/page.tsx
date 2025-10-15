@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
-import { toast } from "sonner"
+import toast from "react-hot-toast"
 import mathUser from "@/assets/create-profile/math-user.png"
 import mathEqupments from "@/assets/create-profile/math-equpments.png"
 import LeoquiIcon from "@/assets/create-profile/LeoQuiIconBall.png"

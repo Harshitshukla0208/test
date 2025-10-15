@@ -8,21 +8,24 @@ export function ToastProvider() {
       toastOptions={{
         duration: 4000,
         style: {
-          background: '#363636',
-          color: '#fff',
+          background: '#ffffff',
+          color: '#000000',
+          border: '1px solid #e5e7eb',
         },
         success: {
           duration: 3000,
           style: {
-            background: '#10B981',
-            color: '#fff',
+            background: '#ffffff',
+            color: '#10B981',
+            border: '1px solid #10B981',
           },
         },
         error: {
           duration: 5000,
           style: {
-            background: '#EF4444',
-            color: '#fff',
+            background: '#ffffff',
+            color: '#EF4444',
+            border: '1px solid #EF4444',
           },
         },
       }}

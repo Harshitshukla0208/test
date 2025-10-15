@@ -1,7 +1,30 @@
+'use client'
 import { AuthForm } from '@/components/auth/AuthForm'
 import Image from 'next/image'
 import FrameBg from '@/assets/Frame100000.png'
-import { Suspense } from 'react'
+import { Suspense, useEffect } from 'react'
+import { useSearchParams } from 'next/navigation'
+import toast from 'react-hot-toast'
+
+function LoginContent() {
+  // Hook must be called inside a Suspense boundary
+  useSearchParams()
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search)
+      const reason = params.get('reason')
+      if (reason === 'expired') {
+        toast('Session expired. Please log in again.', { icon: '⚠️' })
+        window.history.replaceState({}, document.title, '/login')
+      }
+    }
+  }, [])
+  return (
+    <div className="relative z-10">
+      <AuthForm />
+    </div>
+  )
+}
 
 export default function LoginPage() {
   return (
@@ -17,11 +40,9 @@ export default function LoginPage() {
           sizes="100vw"
         />
       </div>
-      <div className="relative z-10">
-        <Suspense fallback={<div>Loading...</div>}>
-          <AuthForm />
-        </Suspense>
-      </div>
+      <Suspense fallback={<div className="relative z-10">Loading...</div>}>
+        <LoginContent />
+      </Suspense>
     </main>
   )
 }

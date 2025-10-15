@@ -2,7 +2,7 @@
 "use client"
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { isAuthenticated, checkUserProfile } from '@/utils/auth'
+import { isAuthenticated, checkUserProfile, redirectToLoginExpired } from '@/utils/auth'
 
 // Higher-Order Component for route protection
 export function withProtectedRoute<T extends object>(
@@ -17,7 +17,7 @@ export function withProtectedRoute<T extends object>(
             const checkAccess = async () => {
                 // Check if user is authenticated
                 if (!isAuthenticated()) {
-                    router.push('/login')
+                    redirectToLoginExpired()
                     return
                 }
 
